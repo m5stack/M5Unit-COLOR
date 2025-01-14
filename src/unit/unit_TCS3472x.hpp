@@ -64,11 +64,8 @@ enum class Gain : uint8_t {
 struct Data {
     std::array<uint8_t, 8> raw{};  // Raw data ClCh/RlRh/GlGh/BlBh
 
-    //! @brief Gets the raw clear value
-    inline uint16_t C16() const
-    {
-        return ((uint16_t)raw[1] << 8) | raw[0];
-    }
+    ///@name Raw value
+    ///@{
     //! @brief Gets the raw red value
     inline uint16_t R16() const
     {
@@ -84,6 +81,35 @@ struct Data {
     {
         return ((uint16_t)raw[7] << 8) | raw[6];
     }
+    //! @brief Gets the raw clear value
+    inline uint16_t C16() const
+    {
+        return ((uint16_t)raw[1] << 8) | raw[0];
+    }
+    //! @brief Gets the raw red value without IR component
+    inline uint16_t RnoIR16() const
+    {
+        return std::max(std::min(R16() - IR(), (int32_t)0xFFFF), (int32_t)0x0000);
+    }
+    //! @brief Gets the raw green value without IR component
+    inline uint16_t GnoIR16() const
+    {
+        return std::max(std::min(G16() - IR(), (int32_t)0xFFFF), (int32_t)0x0000);
+    }
+    //! @brief Gets the raw blue value without IR component
+    inline uint16_t BnoIR16() const
+    {
+        return std::max(std::min(B16() - IR(), (int32_t)0xFFFF), (int32_t)0x0000);
+    }
+    //! @brief Gets the raw clear value without IR component
+    inline uint16_t CnoIR16() const
+    {
+        return std::max(std::min(C16() - IR(), (int32_t)0xFFFF), (int32_t)0x0000);
+    }
+    ///@}
+
+    ///@name RGB
+    ///@{
     //! @brief Gets the red value (0-255)
     inline uint8_t R8() const
     {
@@ -99,17 +125,17 @@ struct Data {
     {
         return raw_to_uint8(B16(), C16());
     }
-    //! @brief Gets the red value with IR component removed
+    //! @brief Gets the red value without IR component
     inline uint8_t RnoIR8() const
     {
         return raw_to_uint8(R16() - IR(), C16() - IR());
     }
-    //! @brief Gets the green value with IR component removed
+    //! @brief Gets the green value without IR component
     inline uint8_t GnoIR8() const
     {
         return raw_to_uint8(G16() - IR(), C16() - IR());
     }
-    //! @brief Gets the blue value with IR component removed
+    //! @brief Gets the blue value without IR component
     inline uint8_t BnoIR8() const
     {
         return raw_to_uint8(B16() - IR(), C16() - IR());
@@ -121,20 +147,29 @@ struct Data {
         return color565(R8(), G8(), B8());
     }
     //! @brief Gets the value in RGB888 format
-    inline uint32_t RGBC888() const
+    inline uint32_t RGB888() const
     {
         return color888(R8(), G8(), B8());
     }
-    //! @brief Gets the value in RGB565 format with IR component removed
+    //! @brief Gets the value in RGB565 format without IR component
     inline uint16_t RGBnoIR565() const
     {
         return color565(RnoIR8(), GnoIR8(), BnoIR8());
     }
+    //! @brief Gets the value in RGB888 format without IR component
+    inline uint32_t RGBnoIR888() const
+    {
+        return color888(RnoIR8(), GnoIR8(), BnoIR8());
+    }
+    ///@}
 
     //! @brief Gets the IR component
-    inline int32_t IR() const
+    inline int32_t IR(bool usingCache = true) const
     {
-        return ((int32_t)R16() + (int32_t)G16() + (int32_t)B16() - (int32_t)C16()) / 2;
+        return (usingCache && _cache)
+                   ? _cache
+                   : (_cache = static_cast<int32_t>(
+                          ((int32_t)R16() + (int32_t)G16() + (int32_t)B16() - (int32_t)C16()) * 0.5f));
     }
 
     //! @brief Raw to uint8_t
@@ -166,6 +201,9 @@ struct Data {
         return b << 16 | g << 8 | r;
     }
     ///@}
+
+private:
+    mutable int32_t _cache{};  // IR componet value cache
 };
 
 }  // namespace tcs3472x
@@ -186,9 +224,9 @@ public:
     struct config_t {
         //! Start periodic measurement on begin?
         bool start_periodic{true};
-        //! RGBC integration time if start on begin
+        //! RGBC integration time(ms) if start on begin
         float atime{614.f};
-        //! Wait time if start on begin
+        //! Wait time(ms) if start on begin
         float wtime{2.4f};
         //! Gain if start on begin
         tcs3472x::Gain gain{tcs3472x::Gain::Controlx4};
@@ -248,31 +286,97 @@ public:
 
     ///@name Settings
     ///@{
-    bool readInterruptThreshold(uint16_t& low, uint16_t& high);
-    bool writeInterruptThreshold(const uint16_t low, const uint16_t high);
-
+    /*!
+      @brief Read the persistence
+      @param[out] pers Persistence
+      @return True if successful
+     */
     bool readPersistence(tcs3472x::Persistence& pers);
+    /*!
+      @brief Write the persistence
+      @param pers Persistence
+      @return True if successful
+     */
     bool writePersistence(const tcs3472x::Persistence pers);
-
+    /*!
+      @brief Read the gain control
+      @param[out] gc Gain control
+      @return True if successful
+     */
     bool readGain(tcs3472x::Gain& gc);
+    /*!
+      @brief Write the gain control
+      @param gc Gain control
+      @return True if successful
+     */
     bool writeGain(const tcs3472x::Gain gc);
-
+    /*!
+      @brief Read the The RGBC integration time (ATIME)
+      @param[out] raw Raw ATIME value
+      @return True if successful
+     */
     bool readAtime(uint8_t& raw);
+    /*!
+      @brief Read the The RGBC integration time (ATIME)
+      @param[out] ms ATIME in ms
+      @return True if successful
+     */
     bool readAtime(float& ms);
-    bool writeAtime(const uint8_t raw);
+    /*!
+      @brief Write the The RGBC integration time (ATIME)
+      @param raw Raw ATIME value
+      @return True if successful
+     */
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, std::nullptr_t>::type = nullptr>
+    inline bool writeAtime(const T raw)
+    {
+        return write_atime((uint8_t)raw);
+    }
+    /*!
+      @brief Write the The RGBC integration time (ATIME)
+      @param raw ATIME in ms
+      @return True if successful
+      @note Converted to approximate raw values and set
+      @warning Valid range 2.4 - 614.4
+     */
     bool writeAtime(const float ms);
-
+    /*!
+      @brief Read the wait time (WTIME)
+      @param[out] raw Raw WTIME value
+      @param[out] wlong x12 longer?
+      @return True if successful
+     */
     bool readWtime(uint8_t& raw, bool& wlong);
+    /*!
+      @brief Read the wait time (WTIME)
+      @param[out] WTIME in ms
+      @return True if successful
+     */
     bool readWtime(float& ms);
+    /*!
+      @brief Write the wait time (WTIME)
+      @param raw Raw WTIME value
+      @param wlong x12 longer?
+      @return True if successful
+     */
     bool writeWtime(const uint8_t raw, const bool wlong);
+    /*!
+      @brief Write the wait time (WTIME)
+      @param ms WTIME in ms
+      @return True if successful
+      @note Converted to approximate raw values and set
+      @warning Valid range 2.4 - 7372.8
+     */
     bool writeWtime(const float ms);
-
     ///@}
 
     ///@name Periodic measurement
     ///@{
     /*!
       @brief Start periodic measurement
+      @param gc Gain
+      @param atime Integration time(ms)
+      @param wtime Wait time(ms)
       @return True if successful
     */
     inline bool startPeriodicMeasurement(const tcs3472x::Gain gc, const float atime, const float wtime)
@@ -286,13 +390,65 @@ public:
     }
     /*!
       @brief Stop periodic measurement
+      @param power_off To power off if true
       @return True if successful
     */
-    inline bool stopPeriodicMeasurement()
+    inline bool stopPeriodicMeasurement(const bool power_off = true)
     {
-        return PeriodicMeasurementAdapter<UnitTCS3472x, tcs3472x::Data>::stopPeriodicMeasurement();
+        return PeriodicMeasurementAdapter<UnitTCS3472x, tcs3472x::Data>::stopPeriodicMeasurement(power_off);
     }
     ///@}
+
+    ///@name Single shot measurement
+    ///@{
+    /*!
+      @brief Measurement single shot
+      @param[out] data Measuerd data
+      @param gc Gain
+      @param atime Integration time(ms)
+      @return True if successful
+      @warning During periodic detection runs, an error is returned
+      @warning Each setting is overwritten
+    */
+    bool measureSingleshot(tcs3472x::Data& d, const tcs3472x::Gain gc, const float atime);
+    //! @brief Measurement single shot using current settings
+    bool measureSingleshot(tcs3472x::Data& d);
+    ///@}
+
+    ///@name Interrupt
+    ///@{
+    /*!
+      @brief Read the interrupt status
+      @param[out] enable true if interrupt is enabled
+      @return True if successful
+     */
+    bool readInterrupt(bool& enable);
+    /*!
+      @brief Write the interrupt status
+      @param enable true if interrupt is to be enabled
+      @return True if successful
+     */
+    bool writeInterrupt(const bool enable);
+    /*!
+      @brief Read the interrupt thresholds for clear channel
+      @param[out] low Low threshold value
+      @param[out] high High threshold value
+      @return True if successful
+     */
+    bool readInterruptThreshold(uint16_t& low, uint16_t& high);
+    /*!
+      @brief Write the interrupt thresholds for clear channel
+      @param low Low threshold value
+      @param high High threshold value
+      @return True if successful
+     */
+    bool writeInterruptThreshold(const uint16_t low, const uint16_t high);
+
+    //! @brief Clear interrupt
+    bool clearInterrupt();
+    ///@}
+
+    bool readStatus(uint8_t& status);
 
 protected:
     inline virtual bool is_valid_id(const uint8_t id)
@@ -302,17 +458,19 @@ protected:
 
     bool read_register8(const uint8_t reg, uint8_t& val);
     bool write_register8(const uint8_t reg, const uint8_t val);
-    bool read_register16(const uint8_t reg, uint16_t& val);
-    bool write_register16(const uint8_t reg, const uint16_t val);
+    // bool read_register16(const uint8_t reg, uint16_t& val);
+    // bool write_register16(const uint8_t reg, const uint16_t val);
     bool read_register(const uint8_t reg, uint8_t* buf, const uint32_t len);
     bool write_register(const uint8_t reg, const uint8_t* buf, const uint32_t len);
 
     bool start_periodic_measurement(const tcs3472x::Gain gc, const float atime, const float wtime);
     bool start_periodic_measurement();
-    bool stop_periodic_measurement();
+    bool stop_periodic_measurement(const bool power_off);
 
     bool is_data_ready();
     bool read_measurement(tcs3472x::Data& d);
+
+    bool write_atime(const uint8_t raw);
 
     M5_UNIT_COMPONENT_PERIODIC_MEASUREMENT_ADAPTER_HPP_BUILDER(UnitTCS3472x, tcs3472x::Data);
 

@@ -19,8 +19,23 @@ namespace m5 {
 namespace unit {
 namespace tcs3472x {
 
-float calculateLux(const int32_t rawR, const int32_t rawG, const int32_t rawB, const int32_t rawC, const float atime_ms,
-                   const Gain gc, const float dgf, const float coefR, const float coefG, const float coefB)
+std::tuple<uint8_t, bool> ms_to_wtime(const float ms)
+{
+    float clamped = std::fmax(std::fmin(ms, WT_LONG_MAX), WT_NORMAL_MIN);
+
+    uint8_t wtime1 = static_cast<uint8_t>(std::round(256 - (clamped / WT_LONG_FACTOR)));
+    uint8_t wtime2 = static_cast<uint8_t>(std::round(256 - (clamped / WT_NORMAL_FACTOR)));
+
+    float ms1 = wtime_to_ms(wtime1, true);
+    float ms2 = wtime_to_ms(wtime2, false);
+
+    // Adopt the setting closer to the specified value
+    return std::fabs(ms2 - ms) <= std::fabs(ms1 - ms) ? std::make_tuple(wtime2, false) : std::make_tuple(wtime1, true);
+}
+
+float calculateLux(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB, const uint16_t rawC,
+                   const float atime_ms, const Gain gc, const float dgf, const float coefR, const float coefG,
+                   const float coefB)
 {
     float ir  = (rawR + rawG + rawB - rawC) * 0.5f;
     float rp  = rawR - ir;
@@ -28,17 +43,17 @@ float calculateLux(const int32_t rawR, const int32_t rawG, const int32_t rawB, c
     float bp  = rawB - ir;
     float g2  = coefR * rp + coefG * gp + coefB * bp;
     float cpl = calculateCPL(atime_ms, gc, dgf);
-    float lx  = (cpl != 0.0f) ? g2 / cpl : 0.0f;
-    return lx >= 0.0f ? lx : 0.0f;
+    return (cpl > 0.0f) ? (g2 / cpl) : 0.0f;
 }
 
-float calculateColorTemperature(const int32_t rawR, const int32_t rawG, const int32_t rawB, const int32_t rawC)
+float calculateColorTemperature(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB, const uint16_t rawC,
+                                const float coefCT, const float offsetCT)
 {
     float ir = (rawR + rawG + rawB - rawC) * 0.5f;
     float rp = rawR - ir;
     // float gp  = rawG - ir;
     float bp = rawB - ir;
-    return CT_Coef * bp / rp + CT_Offset;
+    return coefCT * bp / rp + offsetCT;
 }
 
 uint16_t calculateSaturation(const uint8_t raw)
@@ -50,7 +65,7 @@ uint16_t calculateSaturation(const uint8_t raw)
     return sat;
 }
 
-float calculateCRATIO(const int32_t rawR, const int32_t rawG, const int32_t rawB, const int32_t rawC)
+float calculateCRATIO(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB, const uint16_t rawC)
 {
     if (rawC == 0) {
         return std::numeric_limits<float>::quiet_NaN();
