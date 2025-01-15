@@ -26,6 +26,11 @@ See also examples using conventional methods here.
 ## Examples
 See also [examples/UnitUnified](examples/UnitUnified)
 
+- [PlotToSerial](examples/UnitUnified/UnitColor/PlotToSerial)  
+Displays detected colors to serial and  screen.  
+Includes examples of multiple color correction methods from raw values.
+
+
 ### Doxygen document
 [GitHub Pages](https://m5stack.github.io/M5Unit-COLOR/)
 
