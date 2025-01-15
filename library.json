@@ -1,0 +1,30 @@
+{
+    "name": "M5Unit-COLOR",
+    "description": "Library for M5Stack UNIT COLOR using M5UnitUnified",
+    "keywords": "M5Stack UNIT COLOR M5UnitUnified",
+    "authors": {
+        "name": "M5Stack",
+        "url": "http://www.m5stack.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/m5stack/M5Unit-COLOR.git"
+    },
+    "dependencies": {
+        "M5UnitUnified": "https://github.com/m5stack/M5UnitUnified.git"
+    },
+    "version": "0.0.1",
+    "frameworks": [
+        "arduino"
+    ],
+    "platforms": [
+        "espressif32"
+    ],
+    "headers": "M5UnitUnifiedCOLOR.h",
+    "license": "MIT",
+    "export": {
+        "exclude": [
+            "docs/html"
+        ]
+    }
+}
