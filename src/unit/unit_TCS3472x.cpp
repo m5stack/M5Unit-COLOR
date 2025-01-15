@@ -280,6 +280,10 @@ bool UnitTCS3472x::readGain(tcs3472x::Gain& gc)
 
 bool UnitTCS3472x::writeGain(const tcs3472x::Gain gc)
 {
+    if (inPeriodic()) {
+        M5_LIB_LOGD("Periodic measurements are running");
+        return false;
+    }
     return write_register8(CONTROL_REG, m5::stl::to_underlying(gc) & 0x03);
 }
 
@@ -303,6 +307,10 @@ bool UnitTCS3472x::readAtime(float& ms)
 
 bool UnitTCS3472x::write_atime(const uint8_t raw)
 {
+    if (inPeriodic()) {
+        M5_LIB_LOGD("Periodic measurements are running");
+        return false;
+    }
     return write_register8(ATIME_REG, raw);
 }
 
@@ -340,6 +348,11 @@ bool UnitTCS3472x::readWtime(float& ms)
 
 bool UnitTCS3472x::writeWtime(const uint8_t raw, const bool wlong)
 {
+    if (inPeriodic()) {
+        M5_LIB_LOGD("Periodic measurements are running");
+        return false;
+    }
+
     Config c{};
     c.WLONG(wlong);
     return write_register8(WTIME_REG, raw) && write_register8(CONFIG_REG, c.value);

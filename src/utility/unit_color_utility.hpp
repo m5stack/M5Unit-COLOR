@@ -80,6 +80,7 @@ struct Calibration {
         return linear(d.BnoIR16(), blackB, whiteB);
     }
 
+    //! @brief Linear interpolation in a specified range
     inline static uint8_t linear(const uint16_t raw, const uint16_t low, const uint16_t high)
     {
         return std::fmax(std::fmin(std::round((float)(raw - low) / (float)(high - low) * 255.f), 255.f), 0.0f);
@@ -141,21 +142,21 @@ float calculateColorTemperature(const uint16_t rawR, const uint16_t rawG, const 
 
 /*!
   @brief Calculate Saturation
-  @param raw ATIME raw value
+  @param atime ATIME raw value
   @return Saturation value
   @note Ripple saturation is also considered (in Analog)
  */
-uint16_t calculateSaturation(const uint8_t raw);
+uint16_t calculateSaturation(const uint8_t atime);
 
 /*!
   @brief Calculate Saturation
-  @param ms ATIME ms value
+  @param atime_ms ATIME ms value
   @return Saturation value
   @note Ripple saturation is also considered (in Analog)
  */
-inline uint16_t calculateSaturation(const float ms)
+inline uint16_t calculateSaturation(const float atime_ms)
 {
-    return calculateSaturation(ms_to_atime(ms));
+    return calculateSaturation(ms_to_atime(atime_ms));
 }
 
 /*!
@@ -244,7 +245,7 @@ M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CONSTEXPR std::array<uint8_t, sizeof...
 /*!
   @brief Make gamma table
   @tparam Size Table size
-  @param gamma
+  @param gamma Gamma value
   @return std::array<uint8_t, Size> gamma table
   @note Make on compile time if it can
  */
@@ -258,6 +259,3 @@ M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CONSTEXPR std::array<uint8_t, Size> mak
 }  // namespace unit
 }  // namespace m5
 #endif
-
-//
-// std::exp(exponent * std::log(base))

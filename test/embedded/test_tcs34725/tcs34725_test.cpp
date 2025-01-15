@@ -107,6 +107,14 @@ TEST_P(TestTCS34725, Settings)
 {
     SCOPED_TRACE(ustr);
 
+    // Failed in periodic
+    EXPECT_FALSE(unit->writeGain(Gain::Controlx60));
+    EXPECT_FALSE(unit->writeAtime(0));
+    EXPECT_FALSE(unit->writeWtime(0, false));
+
+    EXPECT_TRUE(unit->stopPeriodicMeasurement());
+    EXPECT_FALSE(unit->inPeriodic());
+
     // Pers
     {
         for (auto&& p : pers_table) {
