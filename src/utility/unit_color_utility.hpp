@@ -64,17 +64,17 @@ struct Calibration {
     uint16_t blackG{}, whiteG{};
     uint16_t blackB{}, whiteB{};
 
-    //! @breif Get the read value with calibration
+    //! @brief Get the read value with calibration
     inline uint8_t R8(const Data& d) const
     {
         return linear(d.RnoIR16(), blackR, whiteR);
     }
-    //! @breif Get the read value with calibration
+    //! @brief Get the read value with calibration
     inline uint8_t G8(const Data& d) const
     {
         return linear(d.GnoIR16(), blackG, whiteG);
     }
-    //! @breif Get the read value with calibration
+    //! @brief Get the read value with calibration
     inline uint8_t B8(const Data& d) const
     {
         return linear(d.BnoIR16(), blackB, whiteB);
