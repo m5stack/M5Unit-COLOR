@@ -123,22 +123,6 @@ bool UnitTCS3472x::begin()
         M5_LIB_LOGE("Cannot detect %s %X", deviceName(), id);
         return false;
     }
-
-#if 0    
-    uint16_t low{}, high{};
-    Persistence pers{};
-    Gain gc{};
-    readInterruptThreshold(low, high);
-    readPersistence(pers);
-    readGain(gc);
-    M5_LIB_LOGW("AI:%u/%u P:%x G:%X", low, high, pers, gc);
-
-    float a{}, w{};
-    readAtime(a);
-    readWtime(w);
-    M5_LIB_LOGE("AT:%f WT:%f", a, w);
-#endif
-
     return _cfg.start_periodic ? start_periodic_measurement(_cfg.gain, _cfg.atime, _cfg.wtime) : true;
 }
 
