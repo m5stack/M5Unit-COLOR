@@ -184,17 +184,17 @@ void loop()
             M5_LOGW("Detect saturation");
             lux = ct = cratio = 0;
         }
-        M5_LOGI("RGB(%3u,%3u,%3u) RGBC:%04X,%04X,%04X,%04X Sat?:%u IR:%d Lux:%.2f CTemp:%.2f CRATIO:%.2f", unit.R8(),
-                unit.G8(), unit.B8(), oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16(),
-                (oldest.C16() >= saturation), oldest.IR(), lux, ct, cratio);
+        M5.Log.printf("RGB(%3u,%3u,%3u) RGBC:%04X,%04X,%04X,%04X Sat?:%u IR:%d Lux:%.2f CTemp:%.2f CRATIO:%.2f\n",
+                      unit.R8(), unit.G8(), unit.B8(), oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16(),
+                      (oldest.C16() >= saturation), oldest.IR(), lux, ct, cratio);
     }
 
     // Single shot
     if (M5.BtnA.wasClicked() || touch.wasClicked()) {
         Data d{};
         if (unit.stopPeriodicMeasurement() && unit.measureSingleshot(d)) {
-            M5_LOGI("\tSingle: RGB(%3u,%3u,%3u) RGBC:%04X,%04X,%04X,%04X", d.R8(), d.G8(), d.B8(), d.R16(), d.G16(),
-                    d.B16(), d.C16());
+            M5.Log.printf("\tSingle: RGB(%3u,%3u,%3u) RGBC:%04X,%04X,%04X,%04X\n", d.R8(), d.G8(), d.B8(), d.R16(),
+                          d.G16(), d.B16(), d.C16());
             unit.startPeriodicMeasurement();
         }
     }
