@@ -170,7 +170,7 @@ bool UnitTCS3472x::start_periodic_measurement()
             _latest   = 0;
             _interval = std::ceil(atime + wtime);
             if (needWait) {
-                // Datashhet says
+                // Datasheet says
                 // A minimum interval of 2.4 ms must pass after PON is asserted before an RGBC can be initiated
                 m5::utility::delay(3);
             }
@@ -220,7 +220,7 @@ bool UnitTCS3472x::measureSingleshot(tcs3472x::Data& d)
         }
         uint32_t at     = std::ceil(atime);
         auto timeout_at = m5::utility::millis() + at + 1000;
-        m5::utility::delay(at + needWait ? 3 : 0);  // Wait during ATIME
+        m5::utility::delay(at + (needWait ? 3 : 0));  // Wait during ATIME
         do {
             if (is_data_ready() && read_measurement(d)) {
                 return true;
@@ -462,8 +462,9 @@ bool UnitTCS3472x::read_register(const uint8_t reg, uint8_t* buf, const uint32_t
 }
 bool UnitTCS3472x::write_register(const uint8_t reg, const uint8_t* buf, const uint32_t len)
 {
+    assert(len + 1 <= 32 && "write_register: buffer too large");
     Command cmd{reg, Command::Type::AutoIncrement};
-    uint8_t wbuf[len + 1]{};
+    uint8_t wbuf[32]{};
     wbuf[0] = cmd.value[0];
     std::memcpy(wbuf + 1, buf, len);
     return (writeWithTransaction(wbuf, len + 1) == m5::hal::error::error_t::OK);
@@ -472,12 +473,12 @@ bool UnitTCS3472x::write_register(const uint8_t reg, const uint8_t* buf, const u
 // class UnitTCS34725
 const char UnitTCS34725::name[] = "UnitTCS34725";
 const types::uid_t UnitTCS34725::uid{"UnitTCS34725"_mmh3};
-const types::uid_t UnitTCS34725::attr{0};
+const types::uid_t UnitTCS34725::attr{attribute::AccessI2C};
 
 // class UnitTCS34727
 const char UnitTCS34727::name[] = "UnitTCS34727";
 const types::uid_t UnitTCS34727::uid{"UnitTCS34727"_mmh3};
-const types::uid_t UnitTCS34727::attr{0};
+const types::uid_t UnitTCS34727::attr{attribute::AccessI2C};
 
 }  // namespace unit
 }  // namespace m5

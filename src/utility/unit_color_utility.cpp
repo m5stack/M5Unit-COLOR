@@ -24,6 +24,12 @@ std::tuple<uint8_t, bool> ms_to_wtime(const float ms)
     float clamped = std::fmax(std::fmin(ms, WT_LONG_MAX), WT_NORMAL_MIN);
 
     uint8_t wtime1 = static_cast<uint8_t>(std::round(256 - (clamped / WT_LONG_FACTOR)));
+
+    // If ms exceeds normal range, WLONG mode is required
+    if (clamped > WT_NORMAL_MAX) {
+        return std::make_tuple(wtime1, true);
+    }
+
     uint8_t wtime2 = static_cast<uint8_t>(std::round(256 - (clamped / WT_NORMAL_FACTOR)));
 
     float ms1 = wtime_to_ms(wtime1, true);
@@ -43,7 +49,8 @@ float calculateLux(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB
     float bp  = rawB - ir;
     float g2  = coefR * rp + coefG * gp + coefB * bp;
     float cpl = calculateCPL(atime_ms, gc, dgf);
-    return (cpl > 0.0f) ? (g2 / cpl) : 0.0f;
+    float lux = (cpl > 0.0f) ? (g2 / cpl) : 0.0f;
+    return (lux > 0.0f) ? lux : 0.0f;
 }
 
 float calculateColorTemperature(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB, const uint16_t rawC,
@@ -53,12 +60,15 @@ float calculateColorTemperature(const uint16_t rawR, const uint16_t rawG, const 
     float rp = rawR - ir;
     // float gp  = rawG - ir;
     float bp = rawB - ir;
+    if (rp <= 0.0f) {
+        return std::numeric_limits<float>::quiet_NaN();
+    }
     return coefCT * bp / rp + offsetCT;
 }
 
 uint16_t calculateSaturation(const uint8_t raw)
 {
-    uint16_t sat = ((256 - raw) > 63) ? 0xFFFF /* Digiatl */ : 1024 * (256 - raw) /* Analog */;
+    uint16_t sat = ((256 - raw) > 63) ? 0xFFFF /* Digital */ : 1024 * (256 - raw) /* Analog */;
     if (256 - raw <= 63) {
         sat -= (sat >> 2);  // Ripple saturation
     }

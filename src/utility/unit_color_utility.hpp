@@ -115,7 +115,7 @@ std::tuple<uint8_t, bool> ms_to_wtime(const float ms);
   @param rawG Raw green value
   @param rawB Raw blue value
   @param rawC Raw clear value
-  @param atime_ms Integtation time(ms)
+  @param atime_ms Integration time(ms)
   @param gc Gain
   @param dgf Device and Glass Factor
   @param coefR Coefficient for the R channel
@@ -171,7 +171,7 @@ inline uint16_t calculateSaturation(const float atime_ms)
   |---|---|
   |CRATIO < 0.1 | LED or fluorescent light |
   |0.1 <= CRATIO < 0.25| Sunlight|
-  |0.25 <0 CRATIO | Incandescent light |
+  |0.25 <= CRATIO | Incandescent light |
 */
 float calculateCRATIO(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB, const uint16_t rawC);
 

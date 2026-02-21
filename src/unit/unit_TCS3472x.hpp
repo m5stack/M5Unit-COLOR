@@ -166,10 +166,11 @@ struct Data {
     //! @brief Gets the IR component
     inline int32_t IR(bool usingCache = true) const
     {
-        return (usingCache && _cache)
-                   ? _cache
-                   : (_cache = static_cast<int32_t>(
-                          ((int32_t)R16() + (int32_t)G16() + (int32_t)B16() - (int32_t)C16()) * 0.5f));
+        if (!usingCache || !_cacheValid) {
+            _cache = static_cast<int32_t>(((int32_t)R16() + (int32_t)G16() + (int32_t)B16() - (int32_t)C16()) * 0.5f);
+            _cacheValid = true;
+        }
+        return _cache;
     }
 
     //! @brief Raw to uint8_t
@@ -203,7 +204,8 @@ struct Data {
     ///@}
 
 private:
-    mutable int32_t _cache{};  // IR componet value cache
+    mutable int32_t _cache{};    // IR component value cache
+    mutable bool _cacheValid{};  // True if _cache holds a computed value
 };
 
 }  // namespace tcs3472x
@@ -311,7 +313,7 @@ public:
      */
     bool writeGain(const tcs3472x::Gain gc);
     /*!
-      @brief Read the The RGBC integration time (ATIME)
+      @brief Read the RGBC integration time (ATIME)
       @param[out] raw Raw ATIME value
       @return True if successful
      */
@@ -323,7 +325,7 @@ public:
      */
     bool readAtime(float& ms);
     /*!
-      @brief Write the The RGBC integration time (ATIME)
+      @brief Write the RGBC integration time (ATIME)
       @param raw Raw ATIME value
       @return True if successful
      */
@@ -334,7 +336,7 @@ public:
     }
     /*!
       @brief Write the The RGBC integration time (ATIME)
-      @param raw ATIME in ms
+      @param ms ATIME in ms
       @return True if successful
       @note Converted to approximate raw values and set
       @warning Valid range 2.4 - 614.4
@@ -349,7 +351,7 @@ public:
     bool readWtime(uint8_t& raw, bool& wlong);
     /*!
       @brief Read the wait time (WTIME)
-      @param[out] WTIME in ms
+      @param[out] ms WTIME in ms
       @return True if successful
      */
     bool readWtime(float& ms);
@@ -403,7 +405,7 @@ public:
     ///@{
     /*!
       @brief Measurement single shot
-      @param[out] data Measuerd data
+      @param[out] d Measured data
       @param gc Gain
       @param atime Integration time(ms)
       @return True if successful
@@ -525,7 +527,7 @@ protected:
     }
 };
 
-///@cond 0
+///@cond INTERNAL
 namespace tcs3472x {
 namespace command {
 // R/W
