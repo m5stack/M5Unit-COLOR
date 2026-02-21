@@ -10,6 +10,7 @@
 #include <M5UnitUnified.h>
 #include <M5UnitUnifiedCOLOR.h>
 #include <M5Utility.h>
+#include <M5HAL.hpp>  // For NessoN1
 
 using namespace m5::unit::tcs3472x;
 
@@ -87,22 +88,44 @@ uint16_t correction_for_blue(const Data& d)
 void setup()
 {
     M5.begin();
+    M5.setTouchButtonHeightByRatio(100);
     // The screen shall be in landscape mode
     if (lcd.height() > lcd.width()) {
         lcd.setRotation(1);
     }
 
+    auto board       = M5.getBoard();
     auto pin_num_sda = M5.getPin(m5::pin_name_t::port_a_sda);
     auto pin_num_scl = M5.getPin(m5::pin_name_t::port_a_scl);
-    M5_LOGI("getPin: SDA:%u SCL:%u", pin_num_sda, pin_num_scl);
-    Wire.end();
-    Wire.begin(pin_num_sda, pin_num_scl, 400 * 1000U);
-
-    if (!Units.add(unit, Wire) || !Units.begin()) {
-        M5_LOGE("Failed to begin");
-        lcd.clear(TFT_RED);
-        while (true) {
-            m5::utility::delay(10000);
+    // For NessoN1 GROVE
+    if (board == m5::board_t::board_ArduinoNessoN1) {
+        // Port A of the NessoN1 is QWIIC, then use portB (GROVE)
+        pin_num_sda = M5.getPin(m5::pin_name_t::port_b_out);
+        pin_num_scl = M5.getPin(m5::pin_name_t::port_b_in);
+        M5_LOGI("getPin(NessoN1): SDA:%u SCL:%u", pin_num_sda, pin_num_scl);
+        // Wire is used internally, so SoftwareI2C handles the unit
+        m5::hal::bus::I2CBusConfig i2c_cfg;
+        i2c_cfg.pin_sda = m5::hal::gpio::getPin(pin_num_sda);
+        i2c_cfg.pin_scl = m5::hal::gpio::getPin(pin_num_scl);
+        auto i2c_bus    = m5::hal::bus::i2c::getBus(i2c_cfg);
+        M5_LOGI("Bus:%d", i2c_bus.has_value());
+        if (!Units.add(unit, i2c_bus ? i2c_bus.value() : nullptr) || !Units.begin()) {
+            M5_LOGE("Failed to begin");
+            lcd.fillScreen(TFT_RED);
+            while (true) {
+                m5::utility::delay(10000);
+            }
+        }
+    } else {
+        M5_LOGI("getPin: SDA:%u SCL:%u", pin_num_sda, pin_num_scl);
+        Wire.end();
+        Wire.begin(pin_num_sda, pin_num_scl, 400 * 1000U);
+        if (!Units.add(unit, Wire) || !Units.begin()) {
+            M5_LOGE("Failed to begin");
+            lcd.fillScreen(TFT_RED);
+            while (true) {
+                m5::utility::delay(10000);
+            }
         }
     }
     M5_LOGI("M5UnitUnified has been begun");
@@ -110,7 +133,7 @@ void setup()
 
     if (!unit.readGain(gc) || !unit.readAtime(atime)) {
         M5_LOGE("Failed to read");
-        lcd.clear(TFT_BLUE);
+        lcd.fillScreen(TFT_BLUE);
         while (true) {
             m5::utility::delay(10000);
         }
@@ -124,16 +147,14 @@ void setup()
 #endif
 
     lcd.setFont(&fonts::AsciiFont8x16);
-    lcd.startWrite();
-    lcd.clear(TFT_BLACK);
+    lcd.fillScreen(TFT_BLACK);
 }
 
 void loop()
 {
     M5.update();
-    auto touch = M5.Touch.getDetail();
-
     Units.update();
+
     if (unit.updated()) {
         const auto& oldest = unit.oldest();
         uint16_t colors[4]{};
@@ -144,36 +165,40 @@ void loop()
         colors[3] =
             Data::color565(gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)], gammaTable[calib.B8(oldest)]);
 
-        // Information
-        // 1st : RGB
-        // 2nd : RGB without IR
-        // 3rd : Calibrated RGB
-        // 4th : Gamma correction of calibrated values
-        // 5th : RAW RGBC
-        lcd.setCursor(16, 8 + 16 * 0);
-        lcd.printf("    RGB(%3u,%3u,%3u)", unit.R8(), unit.G8(), unit.B8());
-        lcd.setCursor(16, 8 + 16 * 1);
-        lcd.printf("RGBnoIR(%3u,%3u,%3u)", oldest.RnoIR8(), oldest.GnoIR8(), oldest.BnoIR8());
-        lcd.setCursor(16, 8 + 16 * 2);
-        lcd.printf("RGBCalb(%3u,%3u,%3u)", calib.R8(oldest), calib.G8(oldest), calib.G8(oldest));
-        lcd.setCursor(16, 8 + 16 * 3);
-        lcd.printf("CalbGam(%3u,%3u,%3u)", gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)],
-                   gammaTable[calib.B8(oldest)]);
-        lcd.setCursor(16, 8 + 16 * 4);
-        lcd.printf("RAW:(%04X,%04X,%04X) %04X", oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16());
+        if (!lcd.isEPD()) {
+            // Information
+            // 1st : RGB
+            // 2nd : RGB without IR
+            // 3rd : Calibrated RGB
+            // 4th : Gamma correction of calibrated values
+            // 5th : RAW RGBC
+            lcd.startWrite();
+            lcd.setCursor(16, 8 + 16 * 0);
+            lcd.printf("    RGB(%3u,%3u,%3u)", unit.R8(), unit.G8(), unit.B8());
+            lcd.setCursor(16, 8 + 16 * 1);
+            lcd.printf("RGBnoIR(%3u,%3u,%3u)", oldest.RnoIR8(), oldest.GnoIR8(), oldest.BnoIR8());
+            lcd.setCursor(16, 8 + 16 * 2);
+            lcd.printf("RGBCalb(%3u,%3u,%3u)", calib.R8(oldest), calib.G8(oldest), calib.B8(oldest));
+            lcd.setCursor(16, 8 + 16 * 3);
+            lcd.printf("CalbGam(%3u,%3u,%3u)", gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)],
+                       gammaTable[calib.B8(oldest)]);
+            lcd.setCursor(16, 8 + 16 * 4);
+            lcd.printf("RAW:(%04X,%04X,%04X) %04X", oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16());
+            lcd.endWrite();
 
-        // Color bar
-        // 1st : RGB
-        // 2nd : RGB without IR
-        // 3rd : Calibrated RGB
-        // 4th : Gamma correction of calibrated values
-        int32_t y = 8 + 16 * 5;
-        int32_t h = (lcd.height() - y) >> 2;
-        if (h > 16) {
-            h = 16;
-        }
-        for (uint32_t i = 0; i < 4; ++i) {
-            lcd.fillRect(0, y + h * i, lcd.width(), h - 1, colors[i]);
+            // Color bar
+            // 1st : RGB
+            // 2nd : RGB without IR
+            // 3rd : Calibrated RGB
+            // 4th : Gamma correction of calibrated values
+            int32_t y = 8 + 16 * 5;
+            int32_t h = (lcd.height() - y) / 4;
+            if (h > 16) {
+                h = 16;
+            }
+            for (uint32_t i = 0; i < 4; ++i) {
+                lcd.fillRect(0, y + h * i, lcd.width(), h - 1, colors[i]);
+            }
         }
 
         // Serial
@@ -190,7 +215,7 @@ void loop()
     }
 
     // Single shot
-    if (M5.BtnA.wasClicked() || touch.wasClicked()) {
+    if (M5.BtnA.wasClicked()) {
         Data d{};
         if (unit.stopPeriodicMeasurement() && unit.measureSingleshot(d)) {
             M5.Log.printf("\tSingle: RGB(%3u,%3u,%3u) RGBC:%04X,%04X,%04X,%04X\n", d.R8(), d.G8(), d.B8(), d.R16(),
