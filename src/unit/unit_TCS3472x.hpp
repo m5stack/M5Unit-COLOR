@@ -128,17 +128,17 @@ struct Data {
     //! @brief Gets the red value without IR component
     inline uint8_t RnoIR8() const
     {
-        return raw_to_uint8(R16() - IR(), C16() - IR());
+        return raw_to_uint8(RnoIR16(), CnoIR16());
     }
     //! @brief Gets the green value without IR component
     inline uint8_t GnoIR8() const
     {
-        return raw_to_uint8(G16() - IR(), C16() - IR());
+        return raw_to_uint8(GnoIR16(), CnoIR16());
     }
     //! @brief Gets the blue value without IR component
     inline uint8_t BnoIR8() const
     {
-        return raw_to_uint8(B16() - IR(), C16() - IR());
+        return raw_to_uint8(BnoIR16(), CnoIR16());
     }
 
     //! @brief Gets the value in RGB565 format
@@ -250,12 +250,12 @@ public:
 
     ///@name Settings for begin
     ///@{
-    /*! @brief Gets the configration */
+    /*! @brief Gets the configuration */
     inline config_t config()
     {
         return _cfg;
     }
-    //! @brief Set the configration
+    //! @brief Set the configuration
     inline void config(const config_t& cfg)
     {
         _cfg = cfg;
