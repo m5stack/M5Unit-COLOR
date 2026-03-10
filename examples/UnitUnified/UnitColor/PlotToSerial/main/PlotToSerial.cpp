@@ -10,7 +10,7 @@
 #include <M5UnitUnified.h>
 #include <M5UnitUnifiedCOLOR.h>
 #include <M5Utility.h>
-#include <M5HAL.hpp>  // For NessoN1
+#include <M5HAL.hpp>
 
 using namespace m5::unit::tcs3472x;
 
@@ -94,38 +94,45 @@ void setup()
         lcd.setRotation(1);
     }
 
-    auto board       = M5.getBoard();
-    auto pin_num_sda = M5.getPin(m5::pin_name_t::port_a_sda);
-    auto pin_num_scl = M5.getPin(m5::pin_name_t::port_a_scl);
-    // For NessoN1 GROVE
+    auto board = M5.getBoard();
+
+    // NessoN1: Arduino Wire (I2C_NUM_0) cannot be used for GROVE port.
+    //   Wire is used by M5Unified In_I2C for internal devices (IOExpander etc.).
+    //   Wire1 exists but is reserved for HatPort — cannot be used for GROVE.
+    //   Reconfiguring Wire to GROVE pins breaks In_I2C, causing ESP_ERR_INVALID_STATE in M5.update().
+    //   Solution: Use SoftwareI2C via M5HAL (bit-banging) for the GROVE port.
+    // NanoC6: Wire.begin() on GROVE pins conflicts with m5::I2C_Class registered by Ex_I2C.setPort()
+    //   on the same I2C_NUM_0, causing sporadic NACK errors.
+    //   Solution: Use M5.Ex_I2C (m5::I2C_Class) directly instead of Arduino Wire.
+    bool unit_ready{};
     if (board == m5::board_t::board_ArduinoNessoN1) {
-        // Port A of the NessoN1 is QWIIC, then use portB (GROVE)
-        pin_num_sda = M5.getPin(m5::pin_name_t::port_b_out);
-        pin_num_scl = M5.getPin(m5::pin_name_t::port_b_in);
-        M5_LOGI("getPin(NessoN1): SDA:%u SCL:%u", pin_num_sda, pin_num_scl);
-        // Wire is used internally, so SoftwareI2C handles the unit
+        // NessoN1: GROVE is on port_b (GPIO 5/4), not port_a (which maps to Wire pins 8/10)
+        auto pin_num_sda = M5.getPin(m5::pin_name_t::port_b_out);
+        auto pin_num_scl = M5.getPin(m5::pin_name_t::port_b_in);
+        M5_LOGI("getPin(M5HAL): SDA:%u SCL:%u", pin_num_sda, pin_num_scl);
         m5::hal::bus::I2CBusConfig i2c_cfg;
         i2c_cfg.pin_sda = m5::hal::gpio::getPin(pin_num_sda);
         i2c_cfg.pin_scl = m5::hal::gpio::getPin(pin_num_scl);
         auto i2c_bus    = m5::hal::bus::i2c::getBus(i2c_cfg);
         M5_LOGI("Bus:%d", i2c_bus.has_value());
-        if (!Units.add(unit, i2c_bus ? i2c_bus.value() : nullptr) || !Units.begin()) {
-            M5_LOGE("Failed to begin");
-            lcd.fillScreen(TFT_RED);
-            while (true) {
-                m5::utility::delay(10000);
-            }
-        }
+        unit_ready = Units.add(unit, i2c_bus ? i2c_bus.value() : nullptr) && Units.begin();
+    } else if (board == m5::board_t::board_M5NanoC6) {
+        // NanoC6: Use M5.Ex_I2C (m5::I2C_Class, not Arduino Wire)
+        M5_LOGI("Using M5.Ex_I2C");
+        unit_ready = Units.add(unit, M5.Ex_I2C) && Units.begin();
     } else {
+        auto pin_num_sda = M5.getPin(m5::pin_name_t::port_a_sda);
+        auto pin_num_scl = M5.getPin(m5::pin_name_t::port_a_scl);
         M5_LOGI("getPin: SDA:%u SCL:%u", pin_num_sda, pin_num_scl);
         Wire.end();
         Wire.begin(pin_num_sda, pin_num_scl, 400 * 1000U);
-        if (!Units.add(unit, Wire) || !Units.begin()) {
-            M5_LOGE("Failed to begin");
-            lcd.fillScreen(TFT_RED);
-            while (true) {
-                m5::utility::delay(10000);
-            }
+        unit_ready = Units.add(unit, Wire) && Units.begin();
+    }
+    if (!unit_ready) {
+        M5_LOGE("Failed to begin");
+        lcd.fillScreen(TFT_RED);
+        while (true) {
+            m5::utility::delay(10000);
         }
     }
     M5_LOGI("M5UnitUnified has been begun");
@@ -166,38 +173,49 @@ void loop()
             Data::color565(gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)], gammaTable[calib.B8(oldest)]);
 
         if (!lcd.isEPD()) {
+            bool narrow = lcd.width() < 200;
+            lcd.startWrite();
             // Information
             // 1st : RGB
             // 2nd : RGB without IR
             // 3rd : Calibrated RGB
             // 4th : Gamma correction of calibrated values
-            // 5th : RAW RGBC
-            lcd.startWrite();
-            lcd.setCursor(16, 8 + 16 * 0);
-            lcd.printf("    RGB(%3u,%3u,%3u)", unit.R8(), unit.G8(), unit.B8());
-            lcd.setCursor(16, 8 + 16 * 1);
-            lcd.printf("RGBnoIR(%3u,%3u,%3u)", oldest.RnoIR8(), oldest.GnoIR8(), oldest.BnoIR8());
-            lcd.setCursor(16, 8 + 16 * 2);
-            lcd.printf("RGBCalb(%3u,%3u,%3u)", calib.R8(oldest), calib.G8(oldest), calib.B8(oldest));
-            lcd.setCursor(16, 8 + 16 * 3);
-            lcd.printf("CalbGam(%3u,%3u,%3u)", gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)],
-                       gammaTable[calib.B8(oldest)]);
-            lcd.setCursor(16, 8 + 16 * 4);
-            lcd.printf("RAW:(%04X,%04X,%04X) %04X", oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16());
+            // 5th : RAW RGBC (wide display only)
+            if (narrow) {
+                // Short format for small screens (e.g. AtomS3 128x128)
+                lcd.setCursor(0, 0 + 16 * 0);
+                lcd.printf("RGB %3u,%3u,%3u", unit.R8(), unit.G8(), unit.B8());
+                lcd.setCursor(0, 0 + 16 * 1);
+                lcd.printf("noI %3u,%3u,%3u", oldest.RnoIR8(), oldest.GnoIR8(), oldest.BnoIR8());
+                lcd.setCursor(0, 0 + 16 * 2);
+                lcd.printf("Cal %3u,%3u,%3u", calib.R8(oldest), calib.G8(oldest), calib.B8(oldest));
+                lcd.setCursor(0, 0 + 16 * 3);
+                lcd.printf("Gam %3u,%3u,%3u", gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)],
+                           gammaTable[calib.B8(oldest)]);
+            } else {
+                lcd.setCursor(16, 8 + 16 * 0);
+                lcd.printf("    RGB(%3u,%3u,%3u)", unit.R8(), unit.G8(), unit.B8());
+                lcd.setCursor(16, 8 + 16 * 1);
+                lcd.printf("RGBnoIR(%3u,%3u,%3u)", oldest.RnoIR8(), oldest.GnoIR8(), oldest.BnoIR8());
+                lcd.setCursor(16, 8 + 16 * 2);
+                lcd.printf("RGBCalb(%3u,%3u,%3u)", calib.R8(oldest), calib.G8(oldest), calib.B8(oldest));
+                lcd.setCursor(16, 8 + 16 * 3);
+                lcd.printf("CalbGam(%3u,%3u,%3u)", gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)],
+                           gammaTable[calib.B8(oldest)]);
+                lcd.setCursor(16, 8 + 16 * 4);
+                lcd.printf("RAW:(%04X,%04X,%04X) %04X", oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16());
+            }
             lcd.endWrite();
 
-            // Color bar
-            // 1st : RGB
-            // 2nd : RGB without IR
-            // 3rd : Calibrated RGB
-            // 4th : Gamma correction of calibrated values
-            int32_t y = 8 + 16 * 5;
+            // Color bar (1:RGB / 2:RGB without IR / 3:Calibrated / 4:Gamma)
+            int32_t y = narrow ? 16 * 4 : 8 + 16 * 5;
             int32_t h = (lcd.height() - y) / 4;
             if (h > 16) {
                 h = 16;
             }
             for (uint32_t i = 0; i < 4; ++i) {
-                lcd.fillRect(0, y + h * i, lcd.width(), h - 1, colors[i]);
+                lcd.drawRect(0, y + h * i, lcd.width(), h - 1, TFT_WHITE);
+                lcd.fillRect(1, y + h * i + 1, lcd.width() - 2, h - 3, colors[i]);
             }
         }
 
