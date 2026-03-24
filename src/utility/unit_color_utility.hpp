@@ -32,7 +32,7 @@ constexpr float CT_Coef{3810.f};
 constexpr float CT_Offset{1391.f};
 ///@}
 
-//@name For A/WTIME
+///@name For A/WTIME
 ///@{
 constexpr float AT_NORMAL_FACTOR = 2.4f;
 constexpr float AT_NORMAL_MIN    = AT_NORMAL_FACTOR;        // 2.4ms
@@ -64,17 +64,17 @@ struct Calibration {
     uint16_t blackG{}, whiteG{};
     uint16_t blackB{}, whiteB{};
 
-    //! @brief Get the read value with calibration
+    //! @brief Get the red value with calibration
     inline uint8_t R8(const Data& d) const
     {
         return linear(d.RnoIR16(), blackR, whiteR);
     }
-    //! @brief Get the read value with calibration
+    //! @brief Get the green value with calibration
     inline uint8_t G8(const Data& d) const
     {
         return linear(d.GnoIR16(), blackG, whiteG);
     }
-    //! @brief Get the read value with calibration
+    //! @brief Get the blue value with calibration
     inline uint8_t B8(const Data& d) const
     {
         return linear(d.BnoIR16(), blackB, whiteB);
@@ -134,7 +134,7 @@ float calculateLux(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB
   @param rawB Raw blue value
   @param rawC Raw clear value
   @param coefCT Coefficient for the color temperature
-  @param offsetCT Offset for the the color temperature
+  @param offsetCT Offset for the color temperature
   @return Color temperature(degrees Kelvin)
  */
 float calculateColorTemperature(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB, const uint16_t rawC,
@@ -177,7 +177,7 @@ float calculateCRATIO(const uint16_t rawR, const uint16_t rawG, const uint16_t r
 
 /*!
   @brief Calculate Counts per Lux (CPL)
-  @param atime_ms integtation time(ms)
+  @param atime_ms integration time(ms)
   @param gc Gain
   @param dgf Device and Glass Factor
   @return CPL
@@ -186,7 +186,7 @@ float calculateCPL(const float atime_ms, const Gain gc, const float dgf = DGF);
 
 /*!
   @brief Calculate maximum Lux
-  @param atime_ms integtation time(ms)
+  @param atime_ms integration time(ms)
   @param gc Gain
   @param dgf Device and Glass Factor
   @return Lux(lx)

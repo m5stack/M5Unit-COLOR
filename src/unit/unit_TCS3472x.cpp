@@ -25,10 +25,10 @@ struct Command {
     static constexpr uint8_t CMD{0x80};  // Command bit
 
     explicit Command(const uint8_t reg, const Type t = Type::Repeated)
-        : value{(uint8_t)(CMD | (reg & 0x1F) | (m5::stl::to_underlying(t) << 5)), 0x00}
+        : value{static_cast<uint8_t>(CMD | (reg & 0x1F) | (m5::stl::to_underlying(t) << 5)), 0x00}
     {
     }
-    Command(const uint8_t reg, const uint8_t val) : value{(uint8_t)(CMD | (reg & 0x1F)), val}
+    Command(const uint8_t reg, const uint8_t val) : value{static_cast<uint8_t>(CMD | (reg & 0x1F)), val}
     {
     }
     std::array<uint8_t, 2> value{};
@@ -380,8 +380,8 @@ bool UnitTCS3472x::readInterruptThreshold(uint16_t& low, uint16_t& high)
 {
     uint8_t rbuf[4]{};
     if (read_register(AILTL_REG, rbuf, 4)) {
-        low  = ((uint16_t)rbuf[1] << 8) | rbuf[0];
-        high = ((uint16_t)rbuf[3] << 8) | rbuf[2];
+        low  = (static_cast<uint16_t>(rbuf[1]) << 8) | rbuf[0];
+        high = (static_cast<uint16_t>(rbuf[3]) << 8) | rbuf[2];
         return true;
     }
     return false;
@@ -439,7 +439,7 @@ bool UnitTCS3472x::read_register16(const uint8_t reg, uint16_t& val)
     uint8_t rbuf[2]{};
     if ((writeWithTransaction(cmd.value.data(), 1U) == m5::hal::error::error_t::OK) &&
         (readWithTransaction(rbuf, 2) == m5::hal::error::error_t::OK)) {
-        val = ((uint16_t)rbuf[1] << 8) | rbuf[0];
+        val = (static_cast<uint16_t>(rbuf[1]) << 8) | rbuf[0];
         return true;
     }
     return false;

@@ -69,42 +69,42 @@ struct Data {
     //! @brief Gets the raw red value
     inline uint16_t R16() const
     {
-        return ((uint16_t)raw[3] << 8) | raw[2];
+        return (static_cast<uint16_t>(raw[3]) << 8) | raw[2];
     }
     //! @brief Gets the raw green value
     inline uint16_t G16() const
     {
-        return ((uint16_t)raw[5] << 8) | raw[4];
+        return (static_cast<uint16_t>(raw[5]) << 8) | raw[4];
     }
     //! @brief Gets the raw blue value
     inline uint16_t B16() const
     {
-        return ((uint16_t)raw[7] << 8) | raw[6];
+        return (static_cast<uint16_t>(raw[7]) << 8) | raw[6];
     }
     //! @brief Gets the raw clear value
     inline uint16_t C16() const
     {
-        return ((uint16_t)raw[1] << 8) | raw[0];
+        return (static_cast<uint16_t>(raw[1]) << 8) | raw[0];
     }
     //! @brief Gets the raw red value without IR component
     inline uint16_t RnoIR16() const
     {
-        return std::max(std::min(R16() - IR(), (int32_t)0xFFFF), (int32_t)0x0000);
+        return std::max(std::min(R16() - IR(), static_cast<int32_t>(0xFFFF)), static_cast<int32_t>(0x0000));
     }
     //! @brief Gets the raw green value without IR component
     inline uint16_t GnoIR16() const
     {
-        return std::max(std::min(G16() - IR(), (int32_t)0xFFFF), (int32_t)0x0000);
+        return std::max(std::min(G16() - IR(), static_cast<int32_t>(0xFFFF)), static_cast<int32_t>(0x0000));
     }
     //! @brief Gets the raw blue value without IR component
     inline uint16_t BnoIR16() const
     {
-        return std::max(std::min(B16() - IR(), (int32_t)0xFFFF), (int32_t)0x0000);
+        return std::max(std::min(B16() - IR(), static_cast<int32_t>(0xFFFF)), static_cast<int32_t>(0x0000));
     }
     //! @brief Gets the raw clear value without IR component
     inline uint16_t CnoIR16() const
     {
-        return std::max(std::min(C16() - IR(), (int32_t)0xFFFF), (int32_t)0x0000);
+        return std::max(std::min(C16() - IR(), static_cast<int32_t>(0xFFFF)), static_cast<int32_t>(0x0000));
     }
     ///@}
 
@@ -163,20 +163,31 @@ struct Data {
     }
     ///@}
 
-    //! @brief Gets the IR component
+    /*!
+      @brief Gets the IR component
+      @param usingCache If true, use cached value when available
+      @return IR component value
+     */
     inline int32_t IR(bool usingCache = true) const
     {
         if (!usingCache || !_cacheValid) {
-            _cache = static_cast<int32_t>(((int32_t)R16() + (int32_t)G16() + (int32_t)B16() - (int32_t)C16()) * 0.5f);
+            _cache      = static_cast<int32_t>((static_cast<int32_t>(R16()) + static_cast<int32_t>(G16()) +
+                                           static_cast<int32_t>(B16()) - static_cast<int32_t>(C16())) *
+                                          0.5f);
             _cacheValid = true;
         }
         return _cache;
     }
 
-    //! @brief Raw to uint8_t
+    /*!
+      @brief Raw to uint8_t
+      @param v Raw channel value
+      @param c Raw clear channel value
+      @return Scaled uint8_t value
+     */
     inline static uint8_t raw_to_uint8(const int32_t v, const int32_t c)
     {
-        return std::max(std::min(static_cast<int>(c ? ((float)v / c) * 255.f : 0), 0xFF), 0x00);
+        return std::max(std::min(static_cast<int>(c ? (static_cast<float>(v) / c) * 255.f : 0), 0xFF), 0x00);
     }
 
     ///@name Conversion (Same as M5GFX)
@@ -227,13 +238,17 @@ public:
         //! Start periodic measurement on begin?
         bool start_periodic{true};
         //! RGBC integration time(ms) if start on begin
-        float atime{614.f};
+        float atime{614.4f};
         //! Wait time(ms) if start on begin
         float wtime{2.4f};
         //! Gain if start on begin
         tcs3472x::Gain gain{tcs3472x::Gain::Controlx4};
     };
 
+    /*!
+      @brief Constructor
+      @param addr I2C address
+     */
     explicit UnitTCS3472x(const uint8_t addr = DEFAULT_ADDRESS)
         : Component(addr), _data{new m5::container::CircularBuffer<tcs3472x::Data>(1)}
     {
@@ -241,11 +256,14 @@ public:
         ccfg.clock = 400 * 1000U;
         component_config(ccfg);
     }
+    //! @brief Destructor
     virtual ~UnitTCS3472x()
     {
     }
 
+    //! @brief Begin communication with the sensor
     virtual bool begin() override;
+    //! @brief Update periodic measurement data
     virtual void update(const bool force = false) override;
 
     ///@name Settings for begin
@@ -319,7 +337,7 @@ public:
      */
     bool readAtime(uint8_t& raw);
     /*!
-      @brief Read the The RGBC integration time (ATIME)
+      @brief Read the RGBC integration time (ATIME)
       @param[out] ms ATIME in ms
       @return True if successful
      */
@@ -335,7 +353,7 @@ public:
         return write_atime((uint8_t)raw);
     }
     /*!
-      @brief Write the The RGBC integration time (ATIME)
+      @brief Write the RGBC integration time (ATIME)
       @param ms ATIME in ms
       @return True if successful
       @note Converted to approximate raw values and set
@@ -450,6 +468,11 @@ public:
     bool clearInterrupt();
     ///@}
 
+    /*!
+      @brief Read the status register
+      @param[out] status Status register value
+      @return True if successful
+     */
     bool readStatus(uint8_t& status);
 
 protected:
@@ -489,9 +512,12 @@ class UnitTCS34725 : public UnitTCS3472x {
     M5_UNIT_COMPONENT_HPP_BUILDER(UnitTCS34725, 0x29);
 
 public:
+    //! @brief Constructor
+    //! @param addr I2C address
     explicit UnitTCS34725(const uint8_t addr = DEFAULT_ADDRESS) : UnitTCS3472x(addr)
     {
     }
+    //! @brief Destructor
     virtual ~UnitTCS34725()
     {
     }
@@ -512,9 +538,12 @@ class UnitTCS34727 : public UnitTCS3472x {
     M5_UNIT_COMPONENT_HPP_BUILDER(UnitTCS34727, 0x29);
 
 public:
+    //! @brief Constructor
+    //! @param addr I2C address
     explicit UnitTCS34727(const uint8_t addr = DEFAULT_ADDRESS) : UnitTCS3472x(addr)
     {
     }
+    //! @brief Destructor
     virtual ~UnitTCS34727()
     {
     }
