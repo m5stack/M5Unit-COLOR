@@ -173,7 +173,7 @@ struct Data {
         if (!usingCache || !_cacheValid) {
             _cache      = static_cast<int32_t>((static_cast<int32_t>(R16()) + static_cast<int32_t>(G16()) +
                                            static_cast<int32_t>(B16()) - static_cast<int32_t>(C16())) *
-                                               0.5f);
+                                          0.5f);
             _cacheValid = true;
         }
         return _cache;
