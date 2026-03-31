@@ -23,14 +23,16 @@ std::tuple<uint8_t, bool> ms_to_wtime(const float ms)
 {
     float clamped = std::fmax(std::fmin(ms, WT_LONG_MAX), WT_NORMAL_MIN);
 
-    uint8_t wtime1 = static_cast<uint8_t>(std::round(256 - (clamped / WT_LONG_FACTOR)));
+    const auto raw1   = static_cast<int>(std::lround(256.0f - (clamped / WT_LONG_FACTOR)));
+    const auto wtime1 = static_cast<uint8_t>(m5::stl::clamp(raw1, 0, 255));
 
     // If ms exceeds normal range, WLONG mode is required
     if (clamped > WT_NORMAL_MAX) {
         return std::make_tuple(wtime1, true);
     }
 
-    uint8_t wtime2 = static_cast<uint8_t>(std::round(256 - (clamped / WT_NORMAL_FACTOR)));
+    const auto raw2   = static_cast<int>(std::lround(256.0f - (clamped / WT_NORMAL_FACTOR)));
+    const auto wtime2 = static_cast<uint8_t>(m5::stl::clamp(raw2, 0, 255));
 
     float ms1 = wtime_to_ms(wtime1, true);
     float ms2 = wtime_to_ms(wtime2, false);

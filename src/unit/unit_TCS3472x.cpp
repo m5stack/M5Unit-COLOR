@@ -212,7 +212,7 @@ bool UnitTCS3472x::measureSingleshot(tcs3472x::Data& d)
     Enable e{};
     float atime{};
     if (readAtime(atime) && read_register8(ENABLE_REG, e.value)) {
-        bool needWait = !e.PON();
+        const auto original = e.value;
         e.PON(true);  // power on
         e.AEN(true);  // RGBC enable
         if (!write_register8(ENABLE_REG, e.value)) {
@@ -220,13 +220,17 @@ bool UnitTCS3472x::measureSingleshot(tcs3472x::Data& d)
         }
         uint32_t at     = std::ceil(atime);
         auto timeout_at = m5::utility::millis() + at + 1000;
-        m5::utility::delay(at + (needWait ? 3 : 0));  // Wait during ATIME
+        Enable orig_e{};
+        orig_e.value = original;
+        m5::utility::delay(at + (!orig_e.PON() ? 3 : 0));  // Wait during ATIME
         do {
             if (is_data_ready() && read_measurement(d)) {
-                return true;
+                return write_register8(ENABLE_REG, original);
             }
             m5::utility::delay(1);
         } while (m5::utility::millis() <= timeout_at);
+
+        return write_register8(ENABLE_REG, original);
     }
     return false;
 }
@@ -473,12 +477,12 @@ bool UnitTCS3472x::write_register(const uint8_t reg, const uint8_t* buf, const u
 // class UnitTCS34725
 const char UnitTCS34725::name[] = "UnitTCS34725";
 const types::uid_t UnitTCS34725::uid{"UnitTCS34725"_mmh3};
-const types::uid_t UnitTCS34725::attr{attribute::AccessI2C};
+const types::attr_t UnitTCS34725::attr{attribute::AccessI2C};
 
 // class UnitTCS34727
 const char UnitTCS34727::name[] = "UnitTCS34727";
 const types::uid_t UnitTCS34727::uid{"UnitTCS34727"_mmh3};
-const types::uid_t UnitTCS34727::attr{attribute::AccessI2C};
+const types::attr_t UnitTCS34727::attr{attribute::AccessI2C};
 
 }  // namespace unit
 }  // namespace m5

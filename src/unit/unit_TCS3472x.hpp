@@ -62,7 +62,7 @@ enum class Gain : uint8_t {
   @brief Measurement data group
  */
 struct Data {
-    std::array<uint8_t, 8> raw{};  // Raw data ClCh/RlRh/GlGh/BlBh
+    std::array<uint8_t, 8> raw{};  //!< Raw data ClCh/RlRh/GlGh/BlBh
 
     ///@name Raw value
     ///@{
@@ -125,17 +125,17 @@ struct Data {
     {
         return raw_to_uint8(B16(), C16());
     }
-    //! @brief Gets the red value without IR component
+    //! @brief Gets the red value without IR component (0-255)
     inline uint8_t RnoIR8() const
     {
         return raw_to_uint8(RnoIR16(), CnoIR16());
     }
-    //! @brief Gets the green value without IR component
+    //! @brief Gets the green value without IR component (0-255)
     inline uint8_t GnoIR8() const
     {
         return raw_to_uint8(GnoIR16(), CnoIR16());
     }
-    //! @brief Gets the blue value without IR component
+    //! @brief Gets the blue value without IR component (0-255)
     inline uint8_t BnoIR8() const
     {
         return raw_to_uint8(BnoIR16(), CnoIR16());
@@ -173,7 +173,7 @@ struct Data {
         if (!usingCache || !_cacheValid) {
             _cache      = static_cast<int32_t>((static_cast<int32_t>(R16()) + static_cast<int32_t>(G16()) +
                                            static_cast<int32_t>(B16()) - static_cast<int32_t>(C16())) *
-                                          0.5f);
+                                               0.5f);
             _cacheValid = true;
         }
         return _cache;
@@ -192,22 +192,27 @@ struct Data {
 
     ///@name Conversion (Same as M5GFX)
     ///@{
+    //! @brief Converts 8-bit RGB channels to RGB332 format
     inline static constexpr uint8_t color332(uint8_t r, uint8_t g, uint8_t b)
     {
         return ((((r >> 5) << 3) + (g >> 5)) << 2) + (b >> 6);
     }
+    //! @brief Converts 8-bit RGB channels to RGB565 format
     inline static constexpr uint16_t color565(uint8_t r, uint8_t g, uint8_t b)
     {
         return (r >> 3) << 11 | (g >> 2) << 5 | b >> 3;
     }
+    //! @brief Converts 8-bit RGB channels to RGB888 format
     inline static constexpr uint32_t color888(uint8_t r, uint8_t g, uint8_t b)
     {
         return r << 16 | g << 8 | b;
     }
+    //! @brief Converts 8-bit RGB channels to byte-swapped RGB565 format
     inline static constexpr uint16_t swap565(uint8_t r, uint8_t g, uint8_t b)
     {
         return (((r >> 3) << 3) + (g >> 5)) | (((g >> 2) << 5) | (b >> 3)) << 8;
     }
+    //! @brief Converts 8-bit RGB channels to byte-swapped RGB888 format
     inline static constexpr uint32_t swap888(uint8_t r, uint8_t g, uint8_t b)
     {
         return b << 16 | g << 8 | r;
@@ -262,8 +267,10 @@ public:
     }
 
     //! @brief Begin communication with the sensor
+    //! @return True if initialization succeeded
     virtual bool begin() override;
     //! @brief Update periodic measurement data
+    //! @param force If true, update immediately without waiting for the configured interval
     virtual void update(const bool force = false) override;
 
     ///@name Settings for begin
@@ -350,7 +357,7 @@ public:
     template <typename T, typename std::enable_if<std::is_integral<T>::value, std::nullptr_t>::type = nullptr>
     inline bool writeAtime(const T raw)
     {
-        return write_atime((uint8_t)raw);
+        return write_atime(static_cast<uint8_t>(raw));
     }
     /*!
       @brief Write the RGBC integration time (ATIME)
@@ -521,6 +528,7 @@ public:
     virtual ~UnitTCS34725()
     {
     }
+    //! @brief Device ID for TCS34725
     static constexpr uint8_t UNIT_ID{0x44};
 
 protected:
@@ -547,6 +555,7 @@ public:
     virtual ~UnitTCS34727()
     {
     }
+    //! @brief Device ID for TCS34727
     static constexpr uint8_t UNIT_ID{0x4D};
 
 protected:

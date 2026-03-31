@@ -51,6 +51,14 @@ constexpr float WT_LONG_MAX      = 256 * WT_LONG_FACTOR;  // 7372.8ms
   @brief Raw value to determine black and white
  */
 struct Calibration {
+    /*!
+      @param br Black reference value for red
+      @param wr White reference value for red
+      @param bg Black reference value for green
+      @param wg White reference value for green
+      @param bb Black reference value for blue
+      @param wb White reference value for blue
+     */
     Calibration(const uint16_t br, const uint16_t wr, const uint16_t bg, const uint16_t wg, const uint16_t bb,
                 const uint16_t wb)
         : blackR{br}, whiteR{wr}, blackG{bg}, whiteG{wg}, blackB{bb}, whiteB{wb}
@@ -60,9 +68,12 @@ struct Calibration {
         assert(wb > bb && "White must be greater than black");
     }
 
-    uint16_t blackR{}, whiteR{};
-    uint16_t blackG{}, whiteG{};
-    uint16_t blackB{}, whiteB{};
+    uint16_t blackR{};  //!< Black reference value for red
+    uint16_t whiteR{};  //!< White reference value for red
+    uint16_t blackG{};  //!< Black reference value for green
+    uint16_t whiteG{};  //!< White reference value for green
+    uint16_t blackB{};  //!< Black reference value for blue
+    uint16_t whiteB{};  //!< White reference value for blue
 
     //! @brief Get the red value with calibration
     inline uint8_t R8(const Data& d) const
@@ -83,7 +94,14 @@ struct Calibration {
     //! @brief Linear interpolation in a specified range
     inline static uint8_t linear(const uint16_t raw, const uint16_t low, const uint16_t high)
     {
-        return std::fmax(std::fmin(std::round((float)(raw - low) / (float)(high - low) * 255.f), 255.f), 0.0f);
+        if (raw <= low) {
+            return 0U;
+        }
+        if (raw >= high) {
+            return 255U;
+        }
+        return static_cast<uint8_t>(
+            std::round((static_cast<float>(raw) - static_cast<float>(low)) / (static_cast<float>(high - low)) * 255.f));
     }
 };
 
