@@ -58,6 +58,31 @@ constexpr Gain gain_table[] = {
 
 }  // namespace
 
+TEST_F(TestTCS34725, BeginAppliesConfig)
+{
+    SCOPED_TRACE(ustr);
+
+    // Default config starts periodic with known values
+    EXPECT_TRUE(unit->inPeriodic());
+    EXPECT_TRUE(unit->stopPeriodicMeasurement());
+
+    // Read back the config values that begin() applied
+    Gain gain{};
+    EXPECT_TRUE(unit->readGain(gain));
+    EXPECT_EQ(gain, Gain::Controlx4);  // default config gain
+
+    float atime{};
+    EXPECT_TRUE(unit->readAtime(atime));
+    EXPECT_NEAR(atime, 614.4f, 2.4f);  // default config atime
+
+    float wtime{};
+    EXPECT_TRUE(unit->readWtime(wtime));
+    EXPECT_NEAR(wtime, 2.4f, 2.4f);  // default config wtime
+
+    // Restart for subsequent tests
+    EXPECT_TRUE(unit->startPeriodicMeasurement());
+}
+
 TEST_F(TestTCS34725, Settings)
 {
     SCOPED_TRACE(ustr);
@@ -454,6 +479,38 @@ TEST_F(TestTCS34725, Status)
         EXPECT_TRUE(unit->readStatus(status));
         EXPECT_TRUE(status & 0x01);  // AVALID
     }
+}
+
+// ============================================================
+// Test with start_periodic=false
+// ============================================================
+
+class TestTCS34725NoPeriodic : public I2CComponentTestBase<UnitTCS34725> {
+protected:
+    virtual UnitTCS34725* get_instance() override
+    {
+        auto ptr         = new m5::unit::UnitTCS34725();
+        auto ccfg        = ptr->component_config();
+        ccfg.stored_size = STORED_SIZE;
+        ptr->component_config(ccfg);
+
+        auto cfg           = ptr->config();
+        cfg.start_periodic = false;
+        ptr->config(cfg);
+        return ptr;
+    }
+};
+
+TEST_F(TestTCS34725NoPeriodic, BeginWithoutPeriodic)
+{
+    SCOPED_TRACE(ustr);
+
+    // begin() with start_periodic=false should not start periodic measurement
+    EXPECT_FALSE(unit->inPeriodic());
+
+    // Should be able to do singleshot
+    Data d{};
+    EXPECT_TRUE(unit->measureSingleshot(d));
 }
 
 // ============================================================
