@@ -7,7 +7,7 @@ M5UnitUnified is a library for unified handling of various M5 units products.
 
 ### SKU:U009
 
-COLOR is color recognition unit integrated with TCS3472 chipset. As the name says, COLOR is able to detect color value and return RGB data as response.
+COLOR is a color recognition unit integrating a TCS3472x RGBC 4-channel sensor. It communicates over I2C at address `0x29`, can detect color values and return RGB data, includes a white LED fill-light for more stable measurement, and provides a LEGO-compatible mounting hole for easy mechanical integration.
 
 ## Related Link
 See also examples using conventional methods here.
@@ -47,5 +47,4 @@ If you want to output Git commit hashes to html, do it for the git cloned folder
 - [Doxygen](https://www.doxygen.nl/)
 - [pcregrep](https://formulae.brew.sh/formula/pcre2)
 - [Git](https://git-scm.com/) (Output commit hash to html)
-
 
