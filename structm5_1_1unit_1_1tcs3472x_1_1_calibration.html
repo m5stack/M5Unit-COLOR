@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">M5Unit-COLOR<span id="projectnumber">&#160;0.1.0 git rev:ba99933</span>
+   <div id="projectname">M5Unit-COLOR<span id="projectnumber">&#160;0.1.1 git rev:9de2836</span>
    </div>
   </td>
  </tr>
@@ -112,20 +112,19 @@ $(function(){initNavTree('structm5_1_1unit_1_1tcs3472x_1_1_calibration.html','')
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aa5084c4f0cfea17d01319ee619538b6c" id="r_aa5084c4f0cfea17d01319ee619538b6c"><td class="memItemLeft" align="right" valign="top"><a id="aa5084c4f0cfea17d01319ee619538b6c" name="aa5084c4f0cfea17d01319ee619538b6c"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>Calibration</b> (const uint16_t br, const uint16_t wr, const uint16_t bg, const uint16_t wg, const uint16_t bb, const uint16_t wb)</td></tr>
+<tr class="memitem:aa5084c4f0cfea17d01319ee619538b6c" id="r_aa5084c4f0cfea17d01319ee619538b6c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa5084c4f0cfea17d01319ee619538b6c">Calibration</a> (const uint16_t br, const uint16_t wr, const uint16_t bg, const uint16_t wg, const uint16_t bb, const uint16_t wb)</td></tr>
 <tr class="separator:aa5084c4f0cfea17d01319ee619538b6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd64cee992087deefbd374ab3013cfab" id="r_acd64cee992087deefbd374ab3013cfab"><td class="memItemLeft" align="right" valign="top"><a id="acd64cee992087deefbd374ab3013cfab" name="acd64cee992087deefbd374ab3013cfab"></a>
 uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>R8</b> (const <a class="el" href="structm5_1_1unit_1_1tcs3472x_1_1_data.html">Data</a> &amp;d) const</td></tr>
-<tr class="memdesc:acd64cee992087deefbd374ab3013cfab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the read value with calibration. <br /></td></tr>
+<tr class="memdesc:acd64cee992087deefbd374ab3013cfab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the red value with calibration. <br /></td></tr>
 <tr class="separator:acd64cee992087deefbd374ab3013cfab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a39b9c0459f793b082afe4abc6e999558" id="r_a39b9c0459f793b082afe4abc6e999558"><td class="memItemLeft" align="right" valign="top"><a id="a39b9c0459f793b082afe4abc6e999558" name="a39b9c0459f793b082afe4abc6e999558"></a>
 uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>G8</b> (const <a class="el" href="structm5_1_1unit_1_1tcs3472x_1_1_data.html">Data</a> &amp;d) const</td></tr>
-<tr class="memdesc:a39b9c0459f793b082afe4abc6e999558"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the read value with calibration. <br /></td></tr>
+<tr class="memdesc:a39b9c0459f793b082afe4abc6e999558"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the green value with calibration. <br /></td></tr>
 <tr class="separator:a39b9c0459f793b082afe4abc6e999558"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa03891eb932faa8be5331c5bd7a8dd98" id="r_aa03891eb932faa8be5331c5bd7a8dd98"><td class="memItemLeft" align="right" valign="top"><a id="aa03891eb932faa8be5331c5bd7a8dd98" name="aa03891eb932faa8be5331c5bd7a8dd98"></a>
 uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>B8</b> (const <a class="el" href="structm5_1_1unit_1_1tcs3472x_1_1_data.html">Data</a> &amp;d) const</td></tr>
-<tr class="memdesc:aa03891eb932faa8be5331c5bd7a8dd98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the read value with calibration. <br /></td></tr>
+<tr class="memdesc:aa03891eb932faa8be5331c5bd7a8dd98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the blue value with calibration. <br /></td></tr>
 <tr class="separator:aa03891eb932faa8be5331c5bd7a8dd98"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
@@ -139,26 +138,93 @@ static uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>linear</b> 
 Public Attributes</h2></td></tr>
 <tr class="memitem:aa1d615458e9adf6db4f79847fca9dc0a" id="r_aa1d615458e9adf6db4f79847fca9dc0a"><td class="memItemLeft" align="right" valign="top"><a id="aa1d615458e9adf6db4f79847fca9dc0a" name="aa1d615458e9adf6db4f79847fca9dc0a"></a>
 uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>blackR</b> {}</td></tr>
+<tr class="memdesc:aa1d615458e9adf6db4f79847fca9dc0a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Black reference value for red. <br /></td></tr>
 <tr class="separator:aa1d615458e9adf6db4f79847fca9dc0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad6dc4aafb763c38c08f6708e4282968e" id="r_ad6dc4aafb763c38c08f6708e4282968e"><td class="memItemLeft" align="right" valign="top"><a id="ad6dc4aafb763c38c08f6708e4282968e" name="ad6dc4aafb763c38c08f6708e4282968e"></a>
 uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>whiteR</b> {}</td></tr>
+<tr class="memdesc:ad6dc4aafb763c38c08f6708e4282968e"><td class="mdescLeft">&#160;</td><td class="mdescRight">White reference value for red. <br /></td></tr>
 <tr class="separator:ad6dc4aafb763c38c08f6708e4282968e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a170da9fc767dbbafc9c9613c30eb6c6c" id="r_a170da9fc767dbbafc9c9613c30eb6c6c"><td class="memItemLeft" align="right" valign="top"><a id="a170da9fc767dbbafc9c9613c30eb6c6c" name="a170da9fc767dbbafc9c9613c30eb6c6c"></a>
 uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>blackG</b> {}</td></tr>
+<tr class="memdesc:a170da9fc767dbbafc9c9613c30eb6c6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Black reference value for green. <br /></td></tr>
 <tr class="separator:a170da9fc767dbbafc9c9613c30eb6c6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae94f0e600b7b0730cd5bbaeb501a5eaa" id="r_ae94f0e600b7b0730cd5bbaeb501a5eaa"><td class="memItemLeft" align="right" valign="top"><a id="ae94f0e600b7b0730cd5bbaeb501a5eaa" name="ae94f0e600b7b0730cd5bbaeb501a5eaa"></a>
 uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>whiteG</b> {}</td></tr>
+<tr class="memdesc:ae94f0e600b7b0730cd5bbaeb501a5eaa"><td class="mdescLeft">&#160;</td><td class="mdescRight">White reference value for green. <br /></td></tr>
 <tr class="separator:ae94f0e600b7b0730cd5bbaeb501a5eaa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa8167d134f8625ac1a6c14be6834eabc" id="r_aa8167d134f8625ac1a6c14be6834eabc"><td class="memItemLeft" align="right" valign="top"><a id="aa8167d134f8625ac1a6c14be6834eabc" name="aa8167d134f8625ac1a6c14be6834eabc"></a>
 uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>blackB</b> {}</td></tr>
+<tr class="memdesc:aa8167d134f8625ac1a6c14be6834eabc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Black reference value for blue. <br /></td></tr>
 <tr class="separator:aa8167d134f8625ac1a6c14be6834eabc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9b7935909f541d8faad3e776da003f2a" id="r_a9b7935909f541d8faad3e776da003f2a"><td class="memItemLeft" align="right" valign="top"><a id="a9b7935909f541d8faad3e776da003f2a" name="a9b7935909f541d8faad3e776da003f2a"></a>
 uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>whiteB</b> {}</td></tr>
+<tr class="memdesc:a9b7935909f541d8faad3e776da003f2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">White reference value for blue. <br /></td></tr>
 <tr class="separator:a9b7935909f541d8faad3e776da003f2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Raw value to determine black and white. </p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="aa5084c4f0cfea17d01319ee619538b6c" name="aa5084c4f0cfea17d01319ee619538b6c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa5084c4f0cfea17d01319ee619538b6c">&#9670;&#160;</a></span>Calibration()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">m5::unit::tcs3472x::Calibration::Calibration </td>
+          <td>(</td>
+          <td class="paramtype">const uint16_t</td>          <td class="paramname"><span class="paramname"><em>br</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint16_t</td>          <td class="paramname"><span class="paramname"><em>wr</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint16_t</td>          <td class="paramname"><span class="paramname"><em>bg</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint16_t</td>          <td class="paramname"><span class="paramname"><em>wg</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint16_t</td>          <td class="paramname"><span class="paramname"><em>bb</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint16_t</td>          <td class="paramname"><span class="paramname"><em>wb</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">br</td><td>Black reference value for red </td></tr>
+    <tr><td class="paramname">wr</td><td>White reference value for red </td></tr>
+    <tr><td class="paramname">bg</td><td>Black reference value for green </td></tr>
+    <tr><td class="paramname">wg</td><td>White reference value for green </td></tr>
+    <tr><td class="paramname">bb</td><td>Black reference value for blue </td></tr>
+    <tr><td class="paramname">wb</td><td>White reference value for blue </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+</div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->

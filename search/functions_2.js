@@ -7,7 +7,11 @@ var searchData=
   ['calculatelux_4',['calculateLux',['../unit__color__utility_8cpp.html#a5d8855d5c915652ac7423755034864f8',1,'m5::unit::tcs3472x']]],
   ['calculatemaxlux_5',['calculateMaxLux',['../unit__color__utility_8hpp.html#aa8d83e941fd36c3f5758ce9c5b2f28a9',1,'m5::unit::tcs3472x']]],
   ['calculatesaturation_6',['calculateSaturation',['../unit__color__utility_8cpp.html#a1045fe70d9a5928188c22f28d069613b',1,'m5::unit::tcs3472x::calculateSaturation(const uint8_t atime)'],['../unit__color__utility_8hpp.html#a9ebd7205b2b3a87c61f939145ba1c369',1,'m5::unit::tcs3472x::calculateSaturation(const float atime_ms)']]],
-  ['clearinterrupt_7',['clearInterrupt',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a48d7c36fcd4b34af35ddeba1354d1eb6',1,'m5::unit::UnitTCS3472x']]],
-  ['cnoir16_8',['CnoIR16',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#ac6a737619c0fe29d908d5d9601fc1e4d',1,'m5::unit::tcs3472x::Data']]],
-  ['config_9',['config',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#acc5c718fc4d38cb197b6ee4895b39adc',1,'m5::unit::UnitTCS3472x::config()'],['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a99da653ec67bb76e7c4074d5984fe6fe',1,'m5::unit::UnitTCS3472x::config(const config_t &amp;cfg)']]]
+  ['calibration_7',['Calibration',['../structm5_1_1unit_1_1tcs3472x_1_1_calibration.html#aa5084c4f0cfea17d01319ee619538b6c',1,'m5::unit::tcs3472x::Calibration']]],
+  ['clearinterrupt_8',['clearInterrupt',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a48d7c36fcd4b34af35ddeba1354d1eb6',1,'m5::unit::UnitTCS3472x']]],
+  ['cnoir16_9',['CnoIR16',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#ac6a737619c0fe29d908d5d9601fc1e4d',1,'m5::unit::tcs3472x::Data']]],
+  ['color332_10',['color332',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a6aa99f942d9289d428e5eb4ed4e39ced',1,'m5::unit::tcs3472x::Data']]],
+  ['color565_11',['color565',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a1b809e8d5e3f12871f3e61c6f9c26f2f',1,'m5::unit::tcs3472x::Data']]],
+  ['color888_12',['color888',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#ae5f090976f74f269149b2b2e6e83869c',1,'m5::unit::tcs3472x::Data']]],
+  ['config_13',['config',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#acc5c718fc4d38cb197b6ee4895b39adc',1,'m5::unit::UnitTCS3472x::config()'],['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a99da653ec67bb76e7c4074d5984fe6fe',1,'m5::unit::UnitTCS3472x::config(const config_t &amp;cfg)']]]
 ];

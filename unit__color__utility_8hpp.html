@@ -27,7 +27,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">M5Unit-COLOR<span id="projectnumber">&#160;0.1.0 git rev:ba99933</span>
+   <div id="projectname">M5Unit-COLOR<span id="projectnumber">&#160;0.1.1 git rev:9de2836</span>
    </div>
   </td>
  </tr>
@@ -122,7 +122,7 @@ Classes</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="namespaces" name="namespaces"></a>
 Namespaces</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">namespace &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacem5.html">m5</a></td></tr>
-<tr class="memdesc:namespacem5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Top level namespace of M5stack. <br /></td></tr>
+<tr class="memdesc:namespacem5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Top level namespace of M5Stack. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
@@ -196,7 +196,7 @@ constexpr float&#160;</td><td class="memItemRight" valign="bottom"><b>m5::unit::
 <tr class="memitem:a3688e63a007749ed6dee0375b5c36a99" id="r_a3688e63a007749ed6dee0375b5c36a99"><td class="memItemLeft" align="right" valign="top"><a id="a3688e63a007749ed6dee0375b5c36a99" name="a3688e63a007749ed6dee0375b5c36a99"></a>
 constexpr float&#160;</td><td class="memItemRight" valign="bottom"><b>m5::unit::tcs3472x::CT_Offset</b> {1391.f}</td></tr>
 <tr class="separator:a3688e63a007749ed6dee0375b5c36a99"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr><td colspan="2"><div class="groupHeader"></div></td></tr>
+<tr><td colspan="2"><div class="groupHeader">For A/WTIME</div></td></tr>
 <tr class="memitem:ad65d55428070ae780bb10b6dc814c9ae" id="r_ad65d55428070ae780bb10b6dc814c9ae"><td class="memItemLeft" align="right" valign="top"><a id="ad65d55428070ae780bb10b6dc814c9ae" name="ad65d55428070ae780bb10b6dc814c9ae"></a>
 constexpr float&#160;</td><td class="memItemRight" valign="bottom"><b>m5::unit::tcs3472x::AT_NORMAL_FACTOR</b> = 2.4f</td></tr>
 <tr class="separator:ad65d55428070ae780bb10b6dc814c9ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -275,7 +275,7 @@ constexpr float&#160;</td><td class="memItemRight" valign="bottom"><b>m5::unit::
     <tr><td class="paramname">rawB</td><td>Raw blue value </td></tr>
     <tr><td class="paramname">rawC</td><td>Raw clear value </td></tr>
     <tr><td class="paramname">coefCT</td><td>Coefficient for the color temperature </td></tr>
-    <tr><td class="paramname">offsetCT</td><td>Offset for the the color temperature </td></tr>
+    <tr><td class="paramname">offsetCT</td><td>Offset for the color temperature </td></tr>
   </table>
   </dd>
 </dl>
@@ -310,7 +310,7 @@ constexpr float&#160;</td><td class="memItemRight" valign="bottom"><b>m5::unit::
 <p>Calculate Counts per Lux (CPL) </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">atime_ms</td><td>integtation time(ms) </td></tr>
+    <tr><td class="paramname">atime_ms</td><td>integration time(ms) </td></tr>
     <tr><td class="paramname">gc</td><td>Gain </td></tr>
     <tr><td class="paramname">dgf</td><td>Device and Glass Factor </td></tr>
   </table>
@@ -367,7 +367,7 @@ constexpr float&#160;</td><td class="memItemRight" valign="bottom"><b>m5::unit::
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone">0.1 &lt;= CRATIO &lt; 0.25   </td><td class="markdownTableBodyNone">Sunlight    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">0.25 &lt;0 CRATIO   </td><td class="markdownTableBodyNone">Incandescent light   </td></tr>
+<td class="markdownTableBodyNone">0.25 &lt;= CRATIO   </td><td class="markdownTableBodyNone">Incandescent light   </td></tr>
 </table>
 </dd></dl>
 
@@ -439,7 +439,7 @@ constexpr float&#160;</td><td class="memItemRight" valign="bottom"><b>m5::unit::
     <tr><td class="paramname">rawG</td><td>Raw green value </td></tr>
     <tr><td class="paramname">rawB</td><td>Raw blue value </td></tr>
     <tr><td class="paramname">rawC</td><td>Raw clear value </td></tr>
-    <tr><td class="paramname">atime_ms</td><td>Integtation time(ms) </td></tr>
+    <tr><td class="paramname">atime_ms</td><td>Integration time(ms) </td></tr>
     <tr><td class="paramname">gc</td><td>Gain </td></tr>
     <tr><td class="paramname">dgf</td><td>Device and Glass Factor </td></tr>
     <tr><td class="paramname">coefR</td><td>Coefficient for the R channel </td></tr>
@@ -487,7 +487,7 @@ constexpr float&#160;</td><td class="memItemRight" valign="bottom"><b>m5::unit::
 <p>Calculate maximum Lux. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">atime_ms</td><td>integtation time(ms) </td></tr>
+    <tr><td class="paramname">atime_ms</td><td>integration time(ms) </td></tr>
     <tr><td class="paramname">gc</td><td>Gain </td></tr>
     <tr><td class="paramname">dgf</td><td>Device and Glass Factor </td></tr>
   </table>

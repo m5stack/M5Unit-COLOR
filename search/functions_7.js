@@ -8,11 +8,12 @@ var searchData=
   ['readinterrupt_5',['readInterrupt',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a9877db8c3f262c4e9d24746ae6c06706',1,'m5::unit::UnitTCS3472x']]],
   ['readinterruptthreshold_6',['readInterruptThreshold',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#aa626f2cd5340adb5bf08ff8063a42583',1,'m5::unit::UnitTCS3472x']]],
   ['readpersistence_7',['readPersistence',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#addefd09c4283ba0e9c35bd65e49cbc0b',1,'m5::unit::UnitTCS3472x']]],
-  ['readwtime_8',['readWtime',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a18499db554e2462e09b95d171f7ded8e',1,'m5::unit::UnitTCS3472x::readWtime(uint8_t &amp;raw, bool &amp;wlong)'],['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#acdb2659e1868a8e42b17da8fbd95d7ba',1,'m5::unit::UnitTCS3472x::readWtime(float &amp;ms)']]],
-  ['rgb565_9',['RGB565',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a693a890ab2ff1f51885383a1e4614030',1,'m5::unit::tcs3472x::Data::RGB565()'],['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a50484c60abab4d591706e51864d6b439',1,'m5::unit::UnitTCS3472x::RGB565()']]],
-  ['rgb888_10',['RGB888',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#ace198ea2c7e4bed37d93101f91734e52',1,'m5::unit::tcs3472x::Data']]],
-  ['rgbnoir565_11',['RGBnoIR565',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a1ea8263b850dc3cdbe170f67fcee0057',1,'m5::unit::tcs3472x::Data']]],
-  ['rgbnoir888_12',['RGBnoIR888',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a5737fa18b2a1369a9d0aca5972b014db',1,'m5::unit::tcs3472x::Data']]],
-  ['rnoir16_13',['RnoIR16',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a577abfcc229a17c5e340ff1346bb01f8',1,'m5::unit::tcs3472x::Data']]],
-  ['rnoir8_14',['RnoIR8',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#ae75013f7582ef8140231b206a977b0a7',1,'m5::unit::tcs3472x::Data']]]
+  ['readstatus_8',['readStatus',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a36099862b2a7868a9a928d2a523a02f9',1,'m5::unit::UnitTCS3472x']]],
+  ['readwtime_9',['readWtime',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a18499db554e2462e09b95d171f7ded8e',1,'m5::unit::UnitTCS3472x::readWtime(uint8_t &amp;raw, bool &amp;wlong)'],['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#acdb2659e1868a8e42b17da8fbd95d7ba',1,'m5::unit::UnitTCS3472x::readWtime(float &amp;ms)']]],
+  ['rgb565_10',['RGB565',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a693a890ab2ff1f51885383a1e4614030',1,'m5::unit::tcs3472x::Data::RGB565()'],['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a50484c60abab4d591706e51864d6b439',1,'m5::unit::UnitTCS3472x::RGB565()']]],
+  ['rgb888_11',['RGB888',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#ace198ea2c7e4bed37d93101f91734e52',1,'m5::unit::tcs3472x::Data']]],
+  ['rgbnoir565_12',['RGBnoIR565',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a1ea8263b850dc3cdbe170f67fcee0057',1,'m5::unit::tcs3472x::Data']]],
+  ['rgbnoir888_13',['RGBnoIR888',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a5737fa18b2a1369a9d0aca5972b014db',1,'m5::unit::tcs3472x::Data']]],
+  ['rnoir16_14',['RnoIR16',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a577abfcc229a17c5e340ff1346bb01f8',1,'m5::unit::tcs3472x::Data']]],
+  ['rnoir8_15',['RnoIR8',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#ae75013f7582ef8140231b206a977b0a7',1,'m5::unit::tcs3472x::Data']]]
 ];

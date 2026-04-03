@@ -3,8 +3,8 @@ var unit___t_c_s3472x_8hpp =
     [ "m5::unit::tcs3472x::Data", "structm5_1_1unit_1_1tcs3472x_1_1_data.html", "structm5_1_1unit_1_1tcs3472x_1_1_data" ],
     [ "m5::unit::UnitTCS3472x", "classm5_1_1unit_1_1_unit_t_c_s3472x.html", "classm5_1_1unit_1_1_unit_t_c_s3472x" ],
     [ "m5::unit::UnitTCS3472x::config_t", "structm5_1_1unit_1_1_unit_t_c_s3472x_1_1config__t.html", "structm5_1_1unit_1_1_unit_t_c_s3472x_1_1config__t" ],
-    [ "m5::unit::UnitTCS34725", "classm5_1_1unit_1_1_unit_t_c_s34725.html", null ],
-    [ "m5::unit::UnitTCS34727", "classm5_1_1unit_1_1_unit_t_c_s34727.html", null ],
+    [ "m5::unit::UnitTCS34725", "classm5_1_1unit_1_1_unit_t_c_s34725.html", "classm5_1_1unit_1_1_unit_t_c_s34725" ],
+    [ "m5::unit::UnitTCS34727", "classm5_1_1unit_1_1_unit_t_c_s34727.html", "classm5_1_1unit_1_1_unit_t_c_s34727" ],
     [ "Gain", "unit___t_c_s3472x_8hpp.html#a218c8a4fbb6dade908b02d58abac28b1", [
       [ "Controlx1", "unit___t_c_s3472x_8hpp.html#a218c8a4fbb6dade908b02d58abac28b1a771c97525ca9adad9089b3746482042d", null ],
       [ "Controlx4", "unit___t_c_s3472x_8hpp.html#a218c8a4fbb6dade908b02d58abac28b1a39868ca8916856565b73e876622e7dd6", null ],

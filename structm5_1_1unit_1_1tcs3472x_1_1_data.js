@@ -18,5 +18,6 @@ var structm5_1_1unit_1_1tcs3472x_1_1_data =
     [ "RGBnoIR565", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a1ea8263b850dc3cdbe170f67fcee0057", null ],
     [ "RGBnoIR888", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a5737fa18b2a1369a9d0aca5972b014db", null ],
     [ "RnoIR16", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a577abfcc229a17c5e340ff1346bb01f8", null ],
-    [ "RnoIR8", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#ae75013f7582ef8140231b206a977b0a7", null ]
+    [ "RnoIR8", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#ae75013f7582ef8140231b206a977b0a7", null ],
+    [ "raw", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a26b04a63af83cadeace8d1c87021b15c", null ]
 ];
