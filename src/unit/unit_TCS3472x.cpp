@@ -25,10 +25,10 @@ struct Command {
     static constexpr uint8_t CMD{0x80};  // Command bit
 
     explicit Command(const uint8_t reg, const Type t = Type::Repeated)
-        : value{(uint8_t)(CMD | (reg & 0x1F) | (m5::stl::to_underlying(t) << 5)), 0x00}
+        : value{static_cast<uint8_t>(CMD | (reg & 0x1F) | (m5::stl::to_underlying(t) << 5)), 0x00}
     {
     }
-    Command(const uint8_t reg, const uint8_t val) : value{(uint8_t)(CMD | (reg & 0x1F)), val}
+    Command(const uint8_t reg, const uint8_t val) : value{static_cast<uint8_t>(CMD | (reg & 0x1F)), val}
     {
     }
     std::array<uint8_t, 2> value{};
@@ -170,7 +170,7 @@ bool UnitTCS3472x::start_periodic_measurement()
             _latest   = 0;
             _interval = std::ceil(atime + wtime);
             if (needWait) {
-                // Datashhet says
+                // Datasheet says
                 // A minimum interval of 2.4 ms must pass after PON is asserted before an RGBC can be initiated
                 m5::utility::delay(3);
             }
@@ -212,7 +212,7 @@ bool UnitTCS3472x::measureSingleshot(tcs3472x::Data& d)
     Enable e{};
     float atime{};
     if (readAtime(atime) && read_register8(ENABLE_REG, e.value)) {
-        bool needWait = !e.PON();
+        const auto original = e.value;
         e.PON(true);  // power on
         e.AEN(true);  // RGBC enable
         if (!write_register8(ENABLE_REG, e.value)) {
@@ -220,13 +220,17 @@ bool UnitTCS3472x::measureSingleshot(tcs3472x::Data& d)
         }
         uint32_t at     = std::ceil(atime);
         auto timeout_at = m5::utility::millis() + at + 1000;
-        m5::utility::delay(at + needWait ? 3 : 0);  // Wait during ATIME
+        Enable orig_e{};
+        orig_e.value = original;
+        m5::utility::delay(at + (!orig_e.PON() ? 3 : 0));  // Wait during ATIME
         do {
             if (is_data_ready() && read_measurement(d)) {
-                return true;
+                return write_register8(ENABLE_REG, original);
             }
             m5::utility::delay(1);
         } while (m5::utility::millis() <= timeout_at);
+
+        return write_register8(ENABLE_REG, original);
     }
     return false;
 }
@@ -380,8 +384,8 @@ bool UnitTCS3472x::readInterruptThreshold(uint16_t& low, uint16_t& high)
 {
     uint8_t rbuf[4]{};
     if (read_register(AILTL_REG, rbuf, 4)) {
-        low  = ((uint16_t)rbuf[1] << 8) | rbuf[0];
-        high = ((uint16_t)rbuf[3] << 8) | rbuf[2];
+        low  = (static_cast<uint16_t>(rbuf[1]) << 8) | rbuf[0];
+        high = (static_cast<uint16_t>(rbuf[3]) << 8) | rbuf[2];
         return true;
     }
     return false;
@@ -439,7 +443,7 @@ bool UnitTCS3472x::read_register16(const uint8_t reg, uint16_t& val)
     uint8_t rbuf[2]{};
     if ((writeWithTransaction(cmd.value.data(), 1U) == m5::hal::error::error_t::OK) &&
         (readWithTransaction(rbuf, 2) == m5::hal::error::error_t::OK)) {
-        val = ((uint16_t)rbuf[1] << 8) | rbuf[0];
+        val = (static_cast<uint16_t>(rbuf[1]) << 8) | rbuf[0];
         return true;
     }
     return false;
@@ -462,8 +466,9 @@ bool UnitTCS3472x::read_register(const uint8_t reg, uint8_t* buf, const uint32_t
 }
 bool UnitTCS3472x::write_register(const uint8_t reg, const uint8_t* buf, const uint32_t len)
 {
+    assert(len + 1 <= 32 && "write_register: buffer too large");
     Command cmd{reg, Command::Type::AutoIncrement};
-    uint8_t wbuf[len + 1]{};
+    uint8_t wbuf[32]{};
     wbuf[0] = cmd.value[0];
     std::memcpy(wbuf + 1, buf, len);
     return (writeWithTransaction(wbuf, len + 1) == m5::hal::error::error_t::OK);
@@ -472,12 +477,12 @@ bool UnitTCS3472x::write_register(const uint8_t reg, const uint8_t* buf, const u
 // class UnitTCS34725
 const char UnitTCS34725::name[] = "UnitTCS34725";
 const types::uid_t UnitTCS34725::uid{"UnitTCS34725"_mmh3};
-const types::uid_t UnitTCS34725::attr{0};
+const types::attr_t UnitTCS34725::attr{attribute::AccessI2C};
 
 // class UnitTCS34727
 const char UnitTCS34727::name[] = "UnitTCS34727";
 const types::uid_t UnitTCS34727::uid{"UnitTCS34727"_mmh3};
-const types::uid_t UnitTCS34727::attr{0};
+const types::attr_t UnitTCS34727::attr{attribute::AccessI2C};
 
 }  // namespace unit
 }  // namespace m5

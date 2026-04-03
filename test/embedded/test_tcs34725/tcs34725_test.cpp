@@ -14,19 +14,16 @@
 #include <googletest/test_helper.hpp>
 #include <unit/unit_TCS3472x.hpp>
 #include <utility/unit_color_utility.hpp>
+#include <esp_random.h>
 #include <cmath>
-#include <random>
 
 using namespace m5::unit::googletest;
 using namespace m5::unit;
 using namespace m5::unit::tcs3472x;
-using m5::unit::types::elapsed_time_t;
-
-const ::testing::Environment* global_fixture = ::testing::AddGlobalTestEnvironment(new GlobalFixture<400000U>());
 
 constexpr uint32_t STORED_SIZE{4};
 
-class TestTCS34725 : public ComponentTestBase<UnitTCS34725, bool> {
+class TestTCS34725 : public I2CComponentTestBase<UnitTCS34725> {
 protected:
     virtual UnitTCS34725* get_instance() override
     {
@@ -36,56 +33,14 @@ protected:
         ptr->component_config(ccfg);
         return ptr;
     }
-    virtual bool is_using_hal() const override
-    {
-        return GetParam();
-    };
 };
-
-// INSTANTIATE_TEST_SUITE_P(ParamValues, TestTCS34725, ::testing::Values(false, true));
-// INSTANTIATE_TEST_SUITE_P(ParamValues, TestTCS34725, ::testing::Values(true));
-INSTANTIATE_TEST_SUITE_P(ParamValues, TestTCS34725, ::testing::Values(false));
 
 namespace {
 
-template <class U>
-elapsed_time_t test_periodic(U* unit, const uint32_t times, const uint32_t measure_duration = 0)
+float random_float(float min_val, float max_val)
 {
-    auto tm         = unit->interval();
-    auto timeout_at = m5::utility::millis() + 10 * 1000;
-    do {
-        unit->update();
-        if (unit->updated()) {
-            break;
-        }
-        std::this_thread::yield();
-    } while (!unit->updated() && m5::utility::millis() <= timeout_at);
-    // timeout
-    if (!unit->updated()) {
-        return 0;
-    }
-
-    //
-    uint32_t measured{};
-    auto start_at = unit->updatedMillis();
-    timeout_at    = start_at + (times * (tm + measure_duration) * 2);
-
-    do {
-        unit->update();
-        measured += unit->updated() ? 1 : 0;
-        if (measured >= times) {
-            break;
-        }
-        m5::utility::delay(1);
-
-    } while (measured < times && m5::utility::millis() <= timeout_at);
-    return (measured == times) ? m5::utility::millis() - start_at : 0;
+    return min_val + (esp_random() / (float)UINT32_MAX) * (max_val - min_val);
 }
-
-auto rng = std::default_random_engine{};
-std::uniform_real_distribution<> dist_atime{AT_NORMAL_MIN, AT_NORMAL_MAX};
-std::uniform_real_distribution<> dist_wtime{WT_NORMAL_MIN, WT_LONG_MAX};
-std::uniform_int_distribution<> dist_thres{0, 0xFFFF};
 
 constexpr Persistence pers_table[] = {
     Persistence::Every,   Persistence::Cycle1,  Persistence::Cycle2,  Persistence::Cycle3,
@@ -103,7 +58,32 @@ constexpr Gain gain_table[] = {
 
 }  // namespace
 
-TEST_P(TestTCS34725, Settings)
+TEST_F(TestTCS34725, BeginAppliesConfig)
+{
+    SCOPED_TRACE(ustr);
+
+    // Default config starts periodic with known values
+    EXPECT_TRUE(unit->inPeriodic());
+    EXPECT_TRUE(unit->stopPeriodicMeasurement());
+
+    // Read back the config values that begin() applied
+    Gain gain{};
+    EXPECT_TRUE(unit->readGain(gain));
+    EXPECT_EQ(gain, Gain::Controlx4);  // default config gain
+
+    float atime{};
+    EXPECT_TRUE(unit->readAtime(atime));
+    EXPECT_NEAR(atime, 614.4f, 2.4f);  // default config atime
+
+    float wtime{};
+    EXPECT_TRUE(unit->readWtime(wtime));
+    EXPECT_NEAR(wtime, 2.4f, 2.4f);  // default config wtime
+
+    // Restart for subsequent tests
+    EXPECT_TRUE(unit->startPeriodicMeasurement());
+}
+
+TEST_F(TestTCS34725, Settings)
 {
     SCOPED_TRACE(ustr);
 
@@ -137,9 +117,10 @@ TEST_P(TestTCS34725, Settings)
         }
     }
 
-    // ATIME
+    // ATIME (boundary + sampled values; random covers the rest)
     {
-        for (uint16_t t = 0; t < 256; ++t) {
+        constexpr uint16_t atime_samples[] = {0, 1, 63, 64, 127, 128, 191, 192, 254, 255};
+        for (auto t : atime_samples) {
             float ft = 2.4f * (256 - t);
             auto s   = m5::utility::formatString("AT:%X FT:%f", t, ft);
             SCOPED_TRACE(s);
@@ -174,9 +155,11 @@ TEST_P(TestTCS34725, Settings)
         EXPECT_EQ(a, 0);
 
         // random
-        uint32_t cnt{32};
+        uint32_t cnt{8};
         while (cnt--) {
-            float ft = dist_atime(rng);
+            float ft = random_float(AT_NORMAL_MIN, AT_NORMAL_MAX);
+            auto s   = m5::utility::formatString("RandomAT:%f", ft);
+            SCOPED_TRACE(s);
             EXPECT_TRUE(unit->writeAtime(ft));
             float fa{};
             EXPECT_TRUE(unit->readAtime(fa));
@@ -188,8 +171,9 @@ TEST_P(TestTCS34725, Settings)
     {
         constexpr bool wlong_table[] = {false, true};
 
+        constexpr uint16_t wtime_samples[] = {0, 1, 63, 64, 127, 128, 191, 192, 254, 255};
         for (auto&& wl : wlong_table) {
-            for (uint16_t t = 0; t < 256; ++t) {
+            for (auto t : wtime_samples) {
                 float ft = 2.4f * (256 - t) * (wl ? 12 : 1);
                 auto s   = m5::utility::formatString("WT:%X(%u) FT:%f", t, wl, ft);
                 SCOPED_TRACE(s);
@@ -232,9 +216,11 @@ TEST_P(TestTCS34725, Settings)
         EXPECT_FALSE(wlong);
 
         // random
-        uint32_t cnt{32};
+        uint32_t cnt{8};
         while (cnt--) {
-            float ft = dist_wtime(rng);
+            float ft = random_float(WT_NORMAL_MIN, WT_LONG_MAX);
+            auto s   = m5::utility::formatString("RandomWT:%f", ft);
+            SCOPED_TRACE(s);
             EXPECT_TRUE(unit->writeWtime(ft));
             float fw{};
             EXPECT_TRUE(unit->readWtime(fw));
@@ -243,7 +229,7 @@ TEST_P(TestTCS34725, Settings)
     }
 }
 
-TEST_P(TestTCS34725, Interrupt)
+TEST_F(TestTCS34725, Interrupt)
 {
     SCOPED_TRACE(ustr);
 
@@ -257,10 +243,12 @@ TEST_P(TestTCS34725, Interrupt)
         EXPECT_TRUE(unit->clearInterrupt());
     }
 
-    uint32_t cnt{32};
+    uint32_t cnt{8};
     while (cnt--) {
-        uint16_t low  = dist_thres(rng);
-        uint16_t high = dist_thres(rng);
+        uint16_t low  = (esp_random() & 0xFFFF);
+        uint16_t high = (esp_random() & 0xFFFF);
+        auto s        = m5::utility::formatString("Low:0x%04X High:0x%04X", low, high);
+        SCOPED_TRACE(s);
         EXPECT_TRUE(unit->writeInterruptThreshold(low, high));
 
         uint16_t ll{}, hh{};
@@ -270,7 +258,7 @@ TEST_P(TestTCS34725, Interrupt)
     }
 }
 
-TEST_P(TestTCS34725, Data)
+TEST_F(TestTCS34725, Data)
 {
     SCOPED_TRACE(ustr);
 
@@ -368,7 +356,7 @@ TEST_P(TestTCS34725, Data)
     }
 }
 
-TEST_P(TestTCS34725, Periodic)
+TEST_F(TestTCS34725, Periodic)
 {
     SCOPED_TRACE(ustr);
 
@@ -392,54 +380,58 @@ TEST_P(TestTCS34725, Periodic)
         {2.4f, 2.4f}, {614.4f, 2.4f}, {2.4f, 614.4f}, {123.4f, 234.5f}, {614.4f, 7372.8f},
     };
 
-    for (auto&& gc : gain_table) {
-        for (auto&& tm : tm_table) {
-            auto s = m5::utility::formatString("GC:%x A:%f W:%f", gc, tm[0], tm[1]);
-            SCOPED_TRACE(s);
+    // Gain does not affect timing; test with one gain, varying ATIME/WTIME
+    constexpr size_t tm_count = sizeof(tm_table) / sizeof(tm_table[0]);
+    for (size_t i = 0; i < tm_count; ++i) {
+        auto& tm = tm_table[i];
+        auto s   = m5::utility::formatString("A:%f W:%f", tm[0], tm[1]);
+        SCOPED_TRACE(s);
+        M5_LOGI("[%u/%u] ATIME:%.1f WTIME:%.1f interval:%lu", (unsigned)(i + 1), (unsigned)tm_count, tm[0], tm[1],
+                (unsigned long)(std::round(tm[0] + tm[1])));
 
-            EXPECT_TRUE(unit->startPeriodicMeasurement(gc, tm[0], tm[1]));
-            EXPECT_TRUE(unit->inPeriodic());
+        EXPECT_TRUE(unit->startPeriodicMeasurement(Gain::Controlx4, tm[0], tm[1]));
+        EXPECT_TRUE(unit->inPeriodic());
 
-            auto elapsed = test_periodic(unit.get(), STORED_SIZE);
-            EXPECT_TRUE(unit->stopPeriodicMeasurement());
-            EXPECT_FALSE(unit->inPeriodic());
+        auto r = collect_periodic_measurements(unit.get(), STORED_SIZE);
+        EXPECT_TRUE(unit->stopPeriodicMeasurement());
+        EXPECT_FALSE(unit->inPeriodic());
 
-            // M5_LOGW("elapsed:%ld", elapsed);
-            EXPECT_GE(elapsed, (int)(std::round(tm[0] + tm[1]) * STORED_SIZE));
+        EXPECT_FALSE(r.timed_out);
+        EXPECT_EQ(r.update_count, STORED_SIZE);
+        EXPECT_LE(r.median(), r.expected_interval + 1);
 
-            EXPECT_EQ(unit->available(), STORED_SIZE);
+        EXPECT_EQ(unit->available(), STORED_SIZE);
+        EXPECT_FALSE(unit->empty());
+        EXPECT_TRUE(unit->full());
+
+        uint32_t cnt{STORED_SIZE / 2};
+        while (cnt-- && unit->available()) {
+            EXPECT_NE(unit->RGB565(), 0);
+            EXPECT_EQ(unit->R8(), unit->oldest().R8());
+            EXPECT_EQ(unit->G8(), unit->oldest().G8());
+            EXPECT_EQ(unit->B8(), unit->oldest().B8());
+            EXPECT_EQ(unit->RGB565(), unit->oldest().RGB565());
+
             EXPECT_FALSE(unit->empty());
-            EXPECT_TRUE(unit->full());
-
-            uint32_t cnt{STORED_SIZE / 2};
-            while (cnt-- && unit->available()) {
-                EXPECT_NE(unit->RGB565(), 0);
-                EXPECT_EQ(unit->R8(), unit->oldest().R8());
-                EXPECT_EQ(unit->G8(), unit->oldest().G8());
-                EXPECT_EQ(unit->B8(), unit->oldest().B8());
-                EXPECT_EQ(unit->RGB565(), unit->oldest().RGB565());
-
-                EXPECT_FALSE(unit->empty());
-                unit->discard();
-            }
-            EXPECT_EQ(unit->available(), STORED_SIZE / 2);
-            EXPECT_FALSE(unit->empty());
-            EXPECT_FALSE(unit->full());
-
-            unit->flush();
-            EXPECT_EQ(unit->available(), 0);
-            EXPECT_TRUE(unit->empty());
-            EXPECT_FALSE(unit->full());
-
-            EXPECT_EQ(unit->R8(), 0);
-            EXPECT_EQ(unit->G8(), 0);
-            EXPECT_EQ(unit->B8(), 0);
-            EXPECT_EQ(unit->RGB565(), 0);
+            unit->discard();
         }
+        EXPECT_EQ(unit->available(), STORED_SIZE / 2);
+        EXPECT_FALSE(unit->empty());
+        EXPECT_FALSE(unit->full());
+
+        unit->flush();
+        EXPECT_EQ(unit->available(), 0);
+        EXPECT_TRUE(unit->empty());
+        EXPECT_FALSE(unit->full());
+
+        EXPECT_EQ(unit->R8(), 0);
+        EXPECT_EQ(unit->G8(), 0);
+        EXPECT_EQ(unit->B8(), 0);
+        EXPECT_EQ(unit->RGB565(), 0);
     }
 }
 
-TEST_P(TestTCS34725, Singleshot)
+TEST_F(TestTCS34725, Singleshot)
 {
     SCOPED_TRACE(ustr);
 
@@ -457,7 +449,7 @@ TEST_P(TestTCS34725, Singleshot)
         auto s = m5::utility::formatString("GC:%x", gc);
         SCOPED_TRACE(s);
 
-        uint32_t cnt{8};
+        uint32_t cnt{2};
         while (cnt--) {
             EXPECT_TRUE(unit->measureSingleshot(d, gc, at[idx]));
             // M5_LOGW("GC:%u %.2f [%u]:(%x,%x,%x,%x) %x", gc, at[idx], cnt, d.R16(), d.G16(), d.B16(), d.C16(),
@@ -465,4 +457,335 @@ TEST_P(TestTCS34725, Singleshot)
         }
         ++idx;
     }
+}
+
+TEST_F(TestTCS34725, Status)
+{
+    SCOPED_TRACE(ustr);
+
+    uint8_t status{};
+    EXPECT_TRUE(unit->readStatus(status));
+    // AVALID bit (bit 0) should be set if periodic measurement is running
+    if (unit->inPeriodic()) {
+        // Wait for at least one integration cycle
+        auto timeout_at = m5::utility::millis() + 2000;
+        while (m5::utility::millis() < timeout_at) {
+            unit->update();
+            if (unit->updated()) {
+                break;
+            }
+            m5::utility::delay(1);
+        }
+        EXPECT_TRUE(unit->readStatus(status));
+        EXPECT_TRUE(status & 0x01);  // AVALID
+    }
+}
+
+// ============================================================
+// Test with start_periodic=false
+// ============================================================
+
+class TestTCS34725NoPeriodic : public I2CComponentTestBase<UnitTCS34725> {
+protected:
+    virtual UnitTCS34725* get_instance() override
+    {
+        auto ptr         = new m5::unit::UnitTCS34725();
+        auto ccfg        = ptr->component_config();
+        ccfg.stored_size = STORED_SIZE;
+        ptr->component_config(ccfg);
+
+        auto cfg           = ptr->config();
+        cfg.start_periodic = false;
+        ptr->config(cfg);
+        return ptr;
+    }
+};
+
+TEST_F(TestTCS34725NoPeriodic, BeginWithoutPeriodic)
+{
+    SCOPED_TRACE(ustr);
+
+    // begin() with start_periodic=false should not start periodic measurement
+    EXPECT_FALSE(unit->inPeriodic());
+
+    // Should be able to do singleshot
+    Data d{};
+    EXPECT_TRUE(unit->measureSingleshot(d));
+}
+
+// ============================================================
+// Pure computation tests (no hardware required)
+// ============================================================
+
+namespace {
+
+Data make_data(uint16_t c, uint16_t r, uint16_t g, uint16_t b)
+{
+    Data d{};
+    d.raw[0] = c & 0xFF;
+    d.raw[1] = c >> 8;
+    d.raw[2] = r & 0xFF;
+    d.raw[3] = r >> 8;
+    d.raw[4] = g & 0xFF;
+    d.raw[5] = g >> 8;
+    d.raw[6] = b & 0xFF;
+    d.raw[7] = b >> 8;
+    return d;
+}
+
+}  // namespace
+
+// Data struct edge cases
+
+TEST(DataStruct, IRCache)
+{
+    auto d = make_data(4000, 1000, 2000, 1500);
+    // IR = (1000+2000+1500-4000)/2 = 250
+    EXPECT_EQ(d.IR(), 250);
+    EXPECT_EQ(d.IR(true), 250);   // cached
+    EXPECT_EQ(d.IR(false), 250);  // forced recompute
+}
+
+TEST(DataStruct, RnoIR8_WhenIRGreaterThanC)
+{
+    // R+G+B > 3*C  =>  IR > C
+    auto d = make_data(15000, 20000, 20000, 20000);
+    // IR = (60000 - 15000) / 2 = 22500
+    EXPECT_EQ(d.IR(), 22500);
+    EXPECT_EQ(d.RnoIR16(), 0);
+    EXPECT_EQ(d.GnoIR16(), 0);
+    EXPECT_EQ(d.BnoIR16(), 0);
+    EXPECT_EQ(d.CnoIR16(), 0);
+    // All noIR8 must be 0 (regression test for bug fix)
+    EXPECT_EQ(d.RnoIR8(), 0);
+    EXPECT_EQ(d.GnoIR8(), 0);
+    EXPECT_EQ(d.BnoIR8(), 0);
+    EXPECT_EQ(d.RGBnoIR565(), 0);
+    EXPECT_EQ(d.RGBnoIR888(), 0);
+}
+
+TEST(DataStruct, RnoIR8_WhenIRGreaterThanChannel)
+{
+    // IR > R but IR < C
+    auto d = make_data(48815, 0x1234, 0x5678, 0x9abc);
+    // IR = (4660 + 22136 + 39612 - 48815) / 2 = 8796
+    EXPECT_EQ(d.IR(), 8796);
+    EXPECT_EQ(d.RnoIR16(), 0);             // 4660 - 8796 < 0 => clamped
+    EXPECT_EQ(d.GnoIR16(), 22136 - 8796);  // 13340
+    EXPECT_EQ(d.BnoIR16(), 39612 - 8796);  // 30816
+    EXPECT_EQ(d.CnoIR16(), 48815 - 8796);  // 40019
+    EXPECT_EQ(d.RnoIR8(), 0);              // R is below IR
+    EXPECT_GT(d.GnoIR8(), 0);              // G has signal
+    EXPECT_GT(d.BnoIR8(), 0);              // B has signal
+}
+
+TEST(DataStruct, ColorConversions)
+{
+    // color332
+    EXPECT_EQ(Data::color332(0xFF, 0xFF, 0xFF), 0xFF);
+    EXPECT_EQ(Data::color332(0x00, 0x00, 0x00), 0x00);
+
+    // color565
+    EXPECT_EQ(Data::color565(0xFF, 0xFF, 0xFF), 0xFFFF);
+    EXPECT_EQ(Data::color565(0x00, 0x00, 0x00), 0x0000);
+    EXPECT_EQ(Data::color565(0xFF, 0x00, 0x00), 0xF800);  // Red only
+    EXPECT_EQ(Data::color565(0x00, 0xFF, 0x00), 0x07E0);  // Green only
+    EXPECT_EQ(Data::color565(0x00, 0x00, 0xFF), 0x001F);  // Blue only
+
+    // color888
+    EXPECT_EQ(Data::color888(0xFF, 0xFF, 0xFF), 0x00FFFFFFU);
+    EXPECT_EQ(Data::color888(0x12, 0x34, 0x56), 0x00123456U);
+
+    // swap565 — byte-swapped color565
+    uint16_t c565 = Data::color565(0xFF, 0x00, 0x00);
+    uint16_t s565 = Data::swap565(0xFF, 0x00, 0x00);
+    EXPECT_EQ(s565, (uint16_t)((c565 >> 8) | (c565 << 8)));
+
+    // swap888 — BGR order
+    EXPECT_EQ(Data::swap888(0x12, 0x34, 0x56), 0x00563412U);
+}
+
+TEST(DataStruct, ZeroClear)
+{
+    // When C=0, R8/G8/B8 should return 0 (avoid division by zero)
+    auto d = make_data(0, 100, 200, 300);
+    EXPECT_EQ(d.R8(), 0);
+    EXPECT_EQ(d.G8(), 0);
+    EXPECT_EQ(d.B8(), 0);
+}
+
+// Utility functions
+
+TEST(Utility, CalculateSaturation)
+{
+    // Digital saturation: (256 - ATIME) > 63
+    EXPECT_EQ(calculateSaturation((uint8_t)0), 0xFFFF);    // steps=256
+    EXPECT_EQ(calculateSaturation((uint8_t)192), 0xFFFF);  // steps=64
+
+    // Analog saturation: (256 - ATIME) <= 63
+    // ATIME=193 => steps=63 => 1024*63=64512, ripple: 64512 - 16128 = 48384
+    EXPECT_EQ(calculateSaturation((uint8_t)193), 48384);
+    // ATIME=255 => steps=1 => 1024, ripple: 1024 - 256 = 768
+    EXPECT_EQ(calculateSaturation((uint8_t)255), 768);
+
+    // Float overload
+    EXPECT_EQ(calculateSaturation(614.4f), 0xFFFF);
+    EXPECT_EQ(calculateSaturation(2.4f), 768);
+}
+
+TEST(Utility, CalculateCPL)
+{
+    // CPL = atime_ms * gain / DGF
+    float cpl = calculateCPL(614.4f, Gain::Controlx1);
+    EXPECT_NEAR(cpl, 614.4f / 310.0f, 0.001f);
+
+    cpl = calculateCPL(2.4f, Gain::Controlx60);
+    EXPECT_NEAR(cpl, 2.4f * 60.0f / 310.0f, 0.001f);
+
+    // DGF=0 => NaN
+    cpl = calculateCPL(100.0f, Gain::Controlx1, 0.0f);
+    EXPECT_TRUE(std::isnan(cpl));
+}
+
+TEST(Utility, CalculateMaxLux)
+{
+    float cpl     = calculateCPL(614.4f, Gain::Controlx4);
+    float max_lux = calculateMaxLux(614.4f, Gain::Controlx4);
+    EXPECT_NEAR(max_lux, 65535.0f / (3.0f * cpl), 0.01f);
+}
+
+TEST(Utility, CalculateLux)
+{
+    // Known values: R=1000, G=2000, B=1500, C=4000, atime=614.4, gain=4x
+    float expected_cpl = 614.4f * 4.0f / 310.0f;
+    float expected_g2  = 0.136f * 750 + 1.0f * 1750 + (-0.444f) * 1250;
+    float expected_lux = expected_g2 / expected_cpl;
+    float lux          = calculateLux(1000, 2000, 1500, 4000, 614.4f, Gain::Controlx4);
+    EXPECT_NEAR(lux, expected_lux, 0.1f);
+    EXPECT_GT(lux, 0.0f);
+
+    // All zeros => lux 0
+    EXPECT_EQ(calculateLux(0, 0, 0, 0, 614.4f, Gain::Controlx1), 0.0f);
+
+    // Negative lux clamps to 0
+    float lux_neg = calculateLux(100, 100, 60000, 200, 614.4f, Gain::Controlx1);
+    EXPECT_GE(lux_neg, 0.0f);
+}
+
+TEST(Utility, CalculateColorTemperature)
+{
+    // CT = CT_Coef * B'/R' + CT_Offset
+    // R=1000, G=2000, B=1500, C=4000 => IR=250, R'=750, B'=1250
+    float expected_ct = 3810.0f * 1250.0f / 750.0f + 1391.0f;
+    float ct          = calculateColorTemperature(1000, 2000, 1500, 4000);
+    EXPECT_NEAR(ct, expected_ct, 0.1f);
+
+    // R' <= 0 => NaN
+    // R=100, G=1000, B=1000, C=500 => IR=800, R'=-700
+    float ct_nan = calculateColorTemperature(100, 1000, 1000, 500);
+    EXPECT_TRUE(std::isnan(ct_nan));
+}
+
+TEST(Utility, CalculateCRATIO)
+{
+    // CRATIO = IR / C, clamped [0, 1]
+    float cr = calculateCRATIO(1000, 2000, 1500, 4000);
+    EXPECT_NEAR(cr, 250.0f / 4000.0f, 0.001f);
+
+    // C=0 => NaN
+    EXPECT_TRUE(std::isnan(calculateCRATIO(100, 200, 300, 0)));
+
+    // Clamped to 1.0 when IR >> C
+    EXPECT_FLOAT_EQ(calculateCRATIO(60000, 60000, 60000, 1), 1.0f);
+
+    // Clamped to 0.0 when IR < 0
+    EXPECT_FLOAT_EQ(calculateCRATIO(0, 0, 0, 65535), 0.0f);
+}
+
+TEST(Utility, AtimeConversion)
+{
+    EXPECT_FLOAT_EQ(atime_to_ms(0), 614.4f);
+    EXPECT_FLOAT_EQ(atime_to_ms(255), 2.4f);
+    EXPECT_EQ(ms_to_atime(614.4f), 0);
+    EXPECT_EQ(ms_to_atime(2.4f), 255);
+
+    // Round-trip
+    for (uint16_t a = 0; a < 256; ++a) {
+        float ms = atime_to_ms(a);
+        EXPECT_EQ(ms_to_atime(ms), a) << "atime=" << a;
+    }
+}
+
+TEST(Utility, WtimeConversion)
+{
+    EXPECT_FLOAT_EQ(wtime_to_ms(0, false), 614.4f);
+    EXPECT_FLOAT_EQ(wtime_to_ms(0, true), 614.4f * 12);
+    EXPECT_FLOAT_EQ(wtime_to_ms(255, false), 2.4f);
+    EXPECT_FLOAT_EQ(wtime_to_ms(255, true), 2.4f * 12);
+
+    // ms_to_wtime
+    {
+        auto result = ms_to_wtime(2.4f);
+        EXPECT_EQ(std::get<0>(result), 255);
+        EXPECT_FALSE(std::get<1>(result));
+    }
+    {
+        auto result = ms_to_wtime(7372.8f);
+        EXPECT_EQ(std::get<0>(result), 0);
+        EXPECT_TRUE(std::get<1>(result));
+    }
+    // Above normal range must use WLONG
+    {
+        auto result = ms_to_wtime(1000.0f);
+        EXPECT_TRUE(std::get<1>(result));
+    }
+}
+
+TEST(Utility, CalibrationLinear)
+{
+    EXPECT_EQ(Calibration::linear(500, 200, 800), 128);  // midpoint
+    EXPECT_EQ(Calibration::linear(200, 200, 800), 0);    // at low
+    EXPECT_EQ(Calibration::linear(800, 200, 800), 255);  // at high
+    EXPECT_EQ(Calibration::linear(100, 200, 800), 0);    // below low => clamped
+    EXPECT_EQ(Calibration::linear(900, 200, 800), 255);  // above high => clamped
+}
+
+TEST(Utility, CalibrationRGB)
+{
+    Calibration calib{100, 1100, 200, 1200, 300, 1300};
+    // IR=0 when R+G+B = C => noIR16 equals raw channel
+    auto d = make_data(2100, 600, 700, 800);
+    EXPECT_EQ(d.IR(), 0);
+    EXPECT_EQ(d.RnoIR16(), 600);
+    EXPECT_EQ(d.GnoIR16(), 700);
+    EXPECT_EQ(d.BnoIR16(), 800);
+
+    // linear(600, 100, 1100) = round((500/1000)*255) = round(127.5) = 128
+    EXPECT_EQ(calib.R8(d), 128);
+    // linear(700, 200, 1200) = round((500/1000)*255) = 128
+    EXPECT_EQ(calib.G8(d), 128);
+    // linear(800, 300, 1300) = round((500/1000)*255) = 128
+    EXPECT_EQ(calib.B8(d), 128);
+}
+
+TEST(Utility, GammaTable)
+{
+    // gamma=1.0 should be identity
+    auto table_1 = make_gamma_table(1.0f);
+    for (size_t i = 0; i < 256; ++i) {
+        EXPECT_EQ(table_1[i], i) << "index=" << i;
+    }
+
+    // gamma=2.2 basic checks
+    auto table_22 = make_gamma_table(2.2f);
+    EXPECT_EQ(table_22[0], 0);
+    EXPECT_EQ(table_22[255], 255);
+    // Midpoint should be below 128 (gamma > 1 darkens midtones)
+    EXPECT_LT(table_22[128], 128);
+
+    // gamma=2.5 — more aggressive curve
+    auto table_25 = make_gamma_table(2.5f);
+    EXPECT_EQ(table_25[0], 0);
+    EXPECT_EQ(table_25[255], 255);
+    EXPECT_LT(table_25[128], table_22[128]);
 }

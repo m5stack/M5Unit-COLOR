@@ -32,7 +32,7 @@ constexpr float CT_Coef{3810.f};
 constexpr float CT_Offset{1391.f};
 ///@}
 
-//@name For A/WTIME
+///@name For A/WTIME
 ///@{
 constexpr float AT_NORMAL_FACTOR = 2.4f;
 constexpr float AT_NORMAL_MIN    = AT_NORMAL_FACTOR;        // 2.4ms
@@ -51,6 +51,14 @@ constexpr float WT_LONG_MAX      = 256 * WT_LONG_FACTOR;  // 7372.8ms
   @brief Raw value to determine black and white
  */
 struct Calibration {
+    /*!
+      @param br Black reference value for red
+      @param wr White reference value for red
+      @param bg Black reference value for green
+      @param wg White reference value for green
+      @param bb Black reference value for blue
+      @param wb White reference value for blue
+     */
     Calibration(const uint16_t br, const uint16_t wr, const uint16_t bg, const uint16_t wg, const uint16_t bb,
                 const uint16_t wb)
         : blackR{br}, whiteR{wr}, blackG{bg}, whiteG{wg}, blackB{bb}, whiteB{wb}
@@ -60,21 +68,24 @@ struct Calibration {
         assert(wb > bb && "White must be greater than black");
     }
 
-    uint16_t blackR{}, whiteR{};
-    uint16_t blackG{}, whiteG{};
-    uint16_t blackB{}, whiteB{};
+    uint16_t blackR{};  //!< Black reference value for red
+    uint16_t whiteR{};  //!< White reference value for red
+    uint16_t blackG{};  //!< Black reference value for green
+    uint16_t whiteG{};  //!< White reference value for green
+    uint16_t blackB{};  //!< Black reference value for blue
+    uint16_t whiteB{};  //!< White reference value for blue
 
-    //! @brief Get the read value with calibration
+    //! @brief Get the red value with calibration
     inline uint8_t R8(const Data& d) const
     {
         return linear(d.RnoIR16(), blackR, whiteR);
     }
-    //! @brief Get the read value with calibration
+    //! @brief Get the green value with calibration
     inline uint8_t G8(const Data& d) const
     {
         return linear(d.GnoIR16(), blackG, whiteG);
     }
-    //! @brief Get the read value with calibration
+    //! @brief Get the blue value with calibration
     inline uint8_t B8(const Data& d) const
     {
         return linear(d.BnoIR16(), blackB, whiteB);
@@ -83,7 +94,14 @@ struct Calibration {
     //! @brief Linear interpolation in a specified range
     inline static uint8_t linear(const uint16_t raw, const uint16_t low, const uint16_t high)
     {
-        return std::fmax(std::fmin(std::round((float)(raw - low) / (float)(high - low) * 255.f), 255.f), 0.0f);
+        if (raw <= low) {
+            return 0U;
+        }
+        if (raw >= high) {
+            return 255U;
+        }
+        return static_cast<uint8_t>(
+            std::round((static_cast<float>(raw) - static_cast<float>(low)) / (static_cast<float>(high - low)) * 255.f));
     }
 };
 
@@ -115,7 +133,7 @@ std::tuple<uint8_t, bool> ms_to_wtime(const float ms);
   @param rawG Raw green value
   @param rawB Raw blue value
   @param rawC Raw clear value
-  @param atime_ms Integtation time(ms)
+  @param atime_ms Integration time(ms)
   @param gc Gain
   @param dgf Device and Glass Factor
   @param coefR Coefficient for the R channel
@@ -134,7 +152,7 @@ float calculateLux(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB
   @param rawB Raw blue value
   @param rawC Raw clear value
   @param coefCT Coefficient for the color temperature
-  @param offsetCT Offset for the the color temperature
+  @param offsetCT Offset for the color temperature
   @return Color temperature(degrees Kelvin)
  */
 float calculateColorTemperature(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB, const uint16_t rawC,
@@ -171,13 +189,13 @@ inline uint16_t calculateSaturation(const float atime_ms)
   |---|---|
   |CRATIO < 0.1 | LED or fluorescent light |
   |0.1 <= CRATIO < 0.25| Sunlight|
-  |0.25 <0 CRATIO | Incandescent light |
+  |0.25 <= CRATIO | Incandescent light |
 */
 float calculateCRATIO(const uint16_t rawR, const uint16_t rawG, const uint16_t rawB, const uint16_t rawC);
 
 /*!
   @brief Calculate Counts per Lux (CPL)
-  @param atime_ms integtation time(ms)
+  @param atime_ms integration time(ms)
   @param gc Gain
   @param dgf Device and Glass Factor
   @return CPL
@@ -186,7 +204,7 @@ float calculateCPL(const float atime_ms, const Gain gc, const float dgf = DGF);
 
 /*!
   @brief Calculate maximum Lux
-  @param atime_ms integtation time(ms)
+  @param atime_ms integration time(ms)
   @param gc Gain
   @param dgf Device and Glass Factor
   @return Lux(lx)

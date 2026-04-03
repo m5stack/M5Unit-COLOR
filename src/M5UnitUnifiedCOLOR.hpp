@@ -18,7 +18,7 @@
 
 /*!
   @namespace m5
-  @brief Top level namespace of M5stack
+  @brief Top level namespace of M5Stack
  */
 namespace m5 {
 
@@ -27,7 +27,7 @@ namespace m5 {
   @brief Unit-related namespace
  */
 namespace unit {
-using UnitColor = m5::unit::UnitTCS34725;
+using UnitColor = m5::unit::UnitTCS34725;  //!< Product name alias for UnitTCS34725
 }  // namespace unit
 }  // namespace m5
 #endif
