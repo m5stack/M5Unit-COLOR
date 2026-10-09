@@ -14,6 +14,7 @@
 #include <googletest/test_helper.hpp>
 #include <unit/unit_TCS3472x.hpp>
 #include <utility/unit_color_utility.hpp>
+#include <utility/color_correction.hpp>
 #include <esp_random.h>
 #include <cmath>
 
@@ -788,4 +789,91 @@ TEST(Utility, GammaTable)
     EXPECT_EQ(table_25[0], 0);
     EXPECT_EQ(table_25[255], 255);
     EXPECT_LT(table_25[128], table_22[128]);
+}
+
+// Color corrections
+
+TEST(ColorCorrection, PureHue)
+{
+    // Dull blue becomes vivid blue: min 60 removed, range 60 scaled to 255
+    auto c = pureHue(60, 70, 120);
+    EXPECT_EQ(c.r, 0);
+    EXPECT_EQ(c.g, 43);  // 10 * 255 / 60 = 42.5 -> 43
+    EXPECT_EQ(c.b, 255);
+
+    // Gray and white have no hue and are returned unchanged
+    c = pureHue(128, 128, 128);
+    EXPECT_EQ(c.r, 128);
+    EXPECT_EQ(c.g, 128);
+    EXPECT_EQ(c.b, 128);
+
+    // Already pure colors are kept
+    c = pureHue(255, 0, 0);
+    EXPECT_EQ(c.r, 255);
+    EXPECT_EQ(c.g, 0);
+    EXPECT_EQ(c.b, 0);
+}
+
+TEST(ColorCorrection, NormalizeBrightness)
+{
+    // Largest channel becomes 255, ratios kept
+    auto c = normalizeBrightness(50, 100, 25);
+    EXPECT_EQ(c.r, 128);  // 50 * 255 / 100 = 127.5 -> 128
+    EXPECT_EQ(c.g, 255);
+    EXPECT_EQ(c.b, 64);  // 25 * 255 / 100 = 63.75 -> 64
+
+    // Black is returned unchanged
+    c = normalizeBrightness(0, 0, 0);
+    EXPECT_EQ(c.r, 0);
+    EXPECT_EQ(c.g, 0);
+    EXPECT_EQ(c.b, 0);
+}
+
+TEST(ColorCorrection, Grayscale)
+{
+    auto c = grayscale(255, 255, 255);
+    EXPECT_EQ(c.r, 255);
+    EXPECT_EQ(c.g, 255);
+    EXPECT_EQ(c.b, 255);
+
+    c = grayscale(0, 0, 0);
+    EXPECT_EQ(c.r, 0);
+
+    // BT.709: green is the brightest, blue the darkest
+    EXPECT_EQ(grayscale(255, 0, 0).r, 54);
+    EXPECT_EQ(grayscale(0, 255, 0).r, 182);
+    EXPECT_EQ(grayscale(0, 0, 255).r, 19);
+}
+
+TEST(ColorCorrection, NearestColorName)
+{
+    EXPECT_EQ(nearestColorName(0, 0, 0), ColorName::Black);
+    EXPECT_EQ(nearestColorName(30, 10, 10), ColorName::Black);
+    EXPECT_EQ(nearestColorName(250, 245, 240), ColorName::White);
+    EXPECT_EQ(nearestColorName(120, 120, 125), ColorName::Gray);
+    EXPECT_EQ(nearestColorName(255, 0, 0), ColorName::Red);
+    EXPECT_EQ(nearestColorName(255, 0, 20), ColorName::Red);  // Hue wraps around
+    EXPECT_EQ(nearestColorName(255, 140, 0), ColorName::Orange);
+    EXPECT_EQ(nearestColorName(255, 255, 0), ColorName::Yellow);
+    EXPECT_EQ(nearestColorName(0, 255, 0), ColorName::Green);
+    EXPECT_EQ(nearestColorName(0, 255, 255), ColorName::Cyan);
+    EXPECT_EQ(nearestColorName(0, 0, 255), ColorName::Blue);
+    EXPECT_EQ(nearestColorName(140, 0, 255), ColorName::Purple);
+    EXPECT_EQ(nearestColorName(255, 0, 255), ColorName::Magenta);
+    EXPECT_EQ(nearestColorName(120, 60, 20), ColorName::Brown);  // Dark orange
+}
+
+TEST(ColorCorrection, ColorNameTable)
+{
+    EXPECT_STREQ(colorNameToString(ColorName::Black), "Black");
+    EXPECT_STREQ(colorNameToString(ColorName::Brown), "Brown");
+    EXPECT_EQ(colorNameToRGB(ColorName::Red).to888(), 0xFF0000U);
+    EXPECT_EQ(colorNameToRGB(ColorName::White).to565(), 0xFFFF);
+
+    // The representative color of each name is classified as that name
+    for (uint8_t i = 0; i <= static_cast<uint8_t>(ColorName::Brown); ++i) {
+        const auto name = static_cast<ColorName>(i);
+        const auto rgb  = colorNameToRGB(name);
+        EXPECT_EQ(nearestColorName(rgb.r, rgb.g, rgb.b), name) << colorNameToString(name);
+    }
 }
