@@ -5,6 +5,12 @@
  */
 /*
   Example using M5UnitUnified for UnitColor
+
+  Shows the detected color as 4 color bars, and outputs it to the serial.
+  Bar 4 shows the calibrated color through a selectable correction:
+    Gamma -> Pure hue -> Brightness normalization -> Color name -> Grayscale
+  BtnA click: Single shot measurement
+  BtnA hold : Switch the correction of bar 4
 */
 #include <M5Unified.h>
 #include <M5UnitUnified.h>
@@ -52,24 +58,28 @@ constexpr auto gammaTable = make_gamma_table(gamma_value);
 std::array<uint8_t, 256> gammaTable{};
 #endif
 
-#if 0
-// Pure hue: removes the white component (the smallest channel) and scales the largest remaining channel to 255,
-// which gives the most saturated color of the same hue (e.g. a dull blue becomes a vivid blue)
-uint16_t correction_for_blue(const Data& d)
+// Correction applied to the calibrated color on bar 4 (switched by holding BtnA)
+enum class Correction : uint8_t { Gamma, PureHue, Brightness, Name, Gray };
+constexpr uint8_t correction_count{5};
+constexpr const char* correction_label[correction_count]       = {"CalbGam", "PureHue", "Bright", "ColName", "Gray"};
+constexpr const char* correction_short_label[correction_count] = {"Gam", "Hue", "Bri", "Nam", "Gry"};
+Correction correction{Correction::Gamma};
+
+RGB8 apply_correction(const uint8_t r, const uint8_t g, const uint8_t b)
 {
-    const int32_t r  = d.RnoIR8();
-    const int32_t g  = d.GnoIR8();
-    const int32_t b  = d.BnoIR8();
-    const int32_t lo = std::min(std::min(r, g), b);
-    const int32_t hi = std::max(std::max(r, g), b);
-    if (hi == lo) {
-        return Data::color565(r, g, b);  // Gray or white has no hue
+    switch (correction) {
+        case Correction::PureHue:
+            return pureHue(r, g, b);
+        case Correction::Brightness:
+            return normalizeBrightness(r, g, b);
+        case Correction::Name:
+            return colorNameToRGB(nearestColorName(r, g, b));
+        case Correction::Gray:
+            return grayscale(r, g, b);
+        default:
+            return RGB8{gammaTable[r], gammaTable[g], gammaTable[b]};
     }
-    const float scale = 255.0f / (hi - lo);
-    return Data::color565(static_cast<uint8_t>((r - lo) * scale), static_cast<uint8_t>((g - lo) * scale),
-                          static_cast<uint8_t>((b - lo) * scale));
 }
-#endif
 
 }  // namespace
 
@@ -113,13 +123,17 @@ void loop()
 
     if (unit.updated()) {
         const auto& oldest = unit.oldest();
+        const uint8_t cr   = calib.R8(oldest);
+        const uint8_t cg   = calib.G8(oldest);
+        const uint8_t cb   = calib.B8(oldest);
+        const RGB8 corrected{apply_correction(cr, cg, cb)};
+        const auto ci = m5::stl::to_underlying(correction);
         uint16_t colors[4]{};
 
-        colors[0] = unit.RGB565();
+        colors[0] = oldest.RGB565();
         colors[1] = oldest.RGBnoIR565();
-        colors[2] = Data::color565(calib.R8(oldest), calib.G8(oldest), calib.B8(oldest));
-        colors[3] =
-            Data::color565(gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)], gammaTable[calib.B8(oldest)]);
+        colors[2] = Data::color565(cr, cg, cb);
+        colors[3] = corrected.to565();
 
         if (!lcd.isEPD()) {
             bool narrow = lcd.width() < 200;
@@ -128,35 +142,41 @@ void loop()
             // 1st : RGB
             // 2nd : RGB without IR
             // 3rd : Calibrated RGB
-            // 4th : Gamma correction of calibrated values
+            // 4th : Calibrated values through the selected correction
             // 5th : RAW RGBC (wide display only)
             if (narrow) {
                 // Short format for small screens (e.g. AtomS3 128x128)
                 lcd.setCursor(0, 0 + 16 * 0);
-                lcd.printf("RGB %3u,%3u,%3u", unit.R8(), unit.G8(), unit.B8());
+                lcd.printf("RGB %3u,%3u,%3u", oldest.R8(), oldest.G8(), oldest.B8());
                 lcd.setCursor(0, 0 + 16 * 1);
                 lcd.printf("noI %3u,%3u,%3u", oldest.RnoIR8(), oldest.GnoIR8(), oldest.BnoIR8());
                 lcd.setCursor(0, 0 + 16 * 2);
-                lcd.printf("Cal %3u,%3u,%3u", calib.R8(oldest), calib.G8(oldest), calib.B8(oldest));
+                lcd.printf("Cal %3u,%3u,%3u", cr, cg, cb);
                 lcd.setCursor(0, 0 + 16 * 3);
-                lcd.printf("Gam %3u,%3u,%3u", gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)],
-                           gammaTable[calib.B8(oldest)]);
+                if (correction == Correction::Name) {
+                    lcd.printf("%s %-11s", correction_short_label[ci], colorNameToString(nearestColorName(cr, cg, cb)));
+                } else {
+                    lcd.printf("%s %3u,%3u,%3u", correction_short_label[ci], corrected.r, corrected.g, corrected.b);
+                }
             } else {
                 lcd.setCursor(16, 8 + 16 * 0);
-                lcd.printf("    RGB(%3u,%3u,%3u)", unit.R8(), unit.G8(), unit.B8());
+                lcd.printf("    RGB(%3u,%3u,%3u)", oldest.R8(), oldest.G8(), oldest.B8());
                 lcd.setCursor(16, 8 + 16 * 1);
                 lcd.printf("RGBnoIR(%3u,%3u,%3u)", oldest.RnoIR8(), oldest.GnoIR8(), oldest.BnoIR8());
                 lcd.setCursor(16, 8 + 16 * 2);
-                lcd.printf("RGBCalb(%3u,%3u,%3u)", calib.R8(oldest), calib.G8(oldest), calib.B8(oldest));
+                lcd.printf("RGBCalb(%3u,%3u,%3u)", cr, cg, cb);
                 lcd.setCursor(16, 8 + 16 * 3);
-                lcd.printf("CalbGam(%3u,%3u,%3u)", gammaTable[calib.R8(oldest)], gammaTable[calib.G8(oldest)],
-                           gammaTable[calib.B8(oldest)]);
+                if (correction == Correction::Name) {
+                    lcd.printf("%7s(%-11s)", correction_label[ci], colorNameToString(nearestColorName(cr, cg, cb)));
+                } else {
+                    lcd.printf("%7s(%3u,%3u,%3u)", correction_label[ci], corrected.r, corrected.g, corrected.b);
+                }
                 lcd.setCursor(16, 8 + 16 * 4);
                 lcd.printf("RAW:(%04X,%04X,%04X) %04X", oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16());
             }
             lcd.endWrite();
 
-            // Color bar (1:RGB / 2:RGB without IR / 3:Calibrated / 4:Gamma)
+            // Color bar (1:RGB / 2:RGB without IR / 3:Calibrated / 4:Selected correction)
             int32_t y = narrow ? 16 * 4 : 8 + 16 * 5;
             int32_t h = (lcd.height() - y) / 4;
             if (h > 16) {
@@ -177,7 +197,7 @@ void loop()
             lux = ct = cratio = 0;
         }
         M5.Log.printf("RGB(%3u,%3u,%3u) RGBC:%04X,%04X,%04X,%04X Sat?:%u IR:%d Lux:%.2f CTemp:%.2f CRATIO:%.2f\n",
-                      unit.R8(), unit.G8(), unit.B8(), oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16(),
+                      oldest.R8(), oldest.G8(), oldest.B8(), oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16(),
                       (oldest.C16() >= saturation), static_cast<int>(oldest.IR()), lux, ct, cratio);
     }
 
@@ -189,6 +209,12 @@ void loop()
                           d.G16(), d.B16(), d.C16());
             unit.startPeriodicMeasurement();
         }
+    }
+
+    // Switch the correction of bar 4 (a hold does not fire wasClicked)
+    if (M5.BtnA.wasHold()) {
+        correction = static_cast<Correction>((m5::stl::to_underlying(correction) + 1) % correction_count);
+        M5_LOGI("Bar 4: %s", correction_label[m5::stl::to_underlying(correction)]);
     }
 }
 

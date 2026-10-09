@@ -28,7 +28,8 @@ See also [examples/UnitUnified](examples/UnitUnified)
 
 - [PlotToSerial](examples/UnitUnified/UnitColor/PlotToSerial)  
 Displays detected colors to serial and  screen.  
-Includes examples of multiple color correction methods from raw values.
+Includes examples of multiple color correction methods from raw values.  
+Hold BtnA to switch the correction of the 4th color bar (gamma / pure hue / brightness normalization / color name / grayscale).
 - [ViaPaHub](examples/UnitUnified/UnitColor/ViaPaHub)  
 Detects colors through PaHub (ch:0) and displays them to serial and screen.  
 Requires [M5Unit-HUB](https://github.com/m5stack/M5Unit-HUB).
