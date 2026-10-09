@@ -2,7 +2,7 @@ name: Build(arduino-m5stack)
 
 env:
   SKETCH_NAMES_FIND_START: ./examples/UnitUnified
-  REQUIRED_LIBRARIES: M5Unified,M5UnitUnified
+  REQUIRED_LIBRARIES: M5Unified,M5UnitUnified,M5Unit-HUB
 
 on:
   push:
@@ -108,6 +108,44 @@ jobs:
 
         archi:
           - esp32
+
+        # ViaPaHub: built on one representative board per compile config (M5Unit-HUB is an example-only dependency)
+        include:
+          - platform-url: https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+            sketch: ViaPaHub
+            unit: UnitColor
+            board: m5stack_core
+            platform-version: 3.3.9
+            platform: m5stack
+            archi: esp32
+          - platform-url: https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+            sketch: ViaPaHub
+            unit: UnitColor
+            board: m5stack_cores3
+            platform-version: 3.3.9
+            platform: m5stack
+            archi: esp32
+          - platform-url: https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+            sketch: ViaPaHub
+            unit: UnitColor
+            board: m5stack_nano_c6
+            platform-version: 3.3.9
+            platform: m5stack
+            archi: esp32
+          - platform-url: https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+            sketch: ViaPaHub
+            unit: UnitColor
+            board: m5stack_nano_h2
+            platform-version: 3.3.9
+            platform: m5stack
+            archi: esp32
+          - platform-url: https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+            sketch: ViaPaHub
+            unit: UnitColor
+            board: m5stack_tab5
+            platform-version: 3.3.9
+            platform: m5stack
+            archi: esp32
 
 
     steps:

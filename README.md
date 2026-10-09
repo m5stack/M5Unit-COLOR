@@ -29,7 +29,17 @@ See also [examples/UnitUnified](examples/UnitUnified)
 - [PlotToSerial](examples/UnitUnified/UnitColor/PlotToSerial)  
 Displays detected colors to serial and  screen.  
 Includes examples of multiple color correction methods from raw values.
+- [ViaPaHub](examples/UnitUnified/UnitColor/ViaPaHub)  
+Detects colors through PaHub (ch:0) and displays them to serial and screen.  
+Requires [M5Unit-HUB](https://github.com/m5stack/M5Unit-HUB).
 
+## Support via [PaHub](https://docs.m5stack.com/en/unit/Unit-PaHub%20v2.1)
+
+|Unit|Support|Note|
+|---|---|---|
+|UnitColor|OK|See the `ViaPaHub` example|
+
+See also [M5Unit-HUB](https://github.com/m5stack/M5Unit-HUB)
 
 ## Doxygen document
 [GitHub Pages](https://m5stack.github.io/M5Unit-COLOR/)
