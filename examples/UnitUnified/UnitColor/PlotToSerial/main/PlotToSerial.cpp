@@ -53,33 +53,21 @@ std::array<uint8_t, 256> gammaTable{};
 #endif
 
 #if 0
+// Pure hue: removes the white component (the smallest channel) and scales the largest remaining channel to 255,
+// which gives the most saturated color of the same hue (e.g. a dull blue becomes a vivid blue)
 uint16_t correction_for_blue(const Data& d)
 {
-    auto r = d.RnoIR8();
-    auto g = d.GnoIR8();
-    auto b = d.BnoIR8();
-
-    float remove, normalize;
-    if ((b < g) && (b < r)) {
-        remove    = b;
-        normalize = max(r - b, g - b);
-    } else if ((g < b) && (g < r)) {
-        remove    = g;
-        normalize = max(r - g, b - g);
-    } else {
-        remove    = r;
-        normalize = max(b - r, g - r);
+    const int32_t r  = d.RnoIR8();
+    const int32_t g  = d.GnoIR8();
+    const int32_t b  = d.BnoIR8();
+    const int32_t lo = std::min(std::min(r, g), b);
+    const int32_t hi = std::max(std::max(r, g), b);
+    if (hi == lo) {
+        return Data::color565(r, g, b);  // Gray or white has no hue
     }
-    // get rid of minority report
-    float rednorm   = r - remove;
-    float greennorm = g - remove;
-    float bluenorm  = b - remove;
-    // now normalize for the highest number
-    rednorm /= normalize;
-    greennorm /= normalize;
-    bluenorm /= normalize;
-
-    return Data::color565(rednorm, greennorm, rednorm);
+    const float scale = 255.0f / (hi - lo);
+    return Data::color565(static_cast<uint8_t>((r - lo) * scale), static_cast<uint8_t>((g - lo) * scale),
+                          static_cast<uint8_t>((b - lo) * scale));
 }
 #endif
 
@@ -104,14 +92,11 @@ void setup()
 
     if (!unit.readGain(gc) || !unit.readAtime(atime)) {
         M5_LOGE("Failed to read");
-        lcd.fillScreen(TFT_BLUE);
-        while (true) {
-            m5::utility::delay(10000);
-        }
+        m5::unit::wiring::failStop();
     }
     saturation = calculateSaturation(atime);
     max_lux    = calculateMaxLux(atime, gc);
-    M5_LOGI("ATIME:%f GAIN:%u SAT:%u MLUX:%f ", atime, gc, saturation, max_lux);
+    M5_LOGI("ATIME:%f GAIN:%u SAT:%u MLUX:%f ", atime, m5::stl::to_underlying(gc), saturation, max_lux);
 
 #if !defined(M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CAN_CONSTEXPR_MAKE_GAMMA_TABLE)
     gammaTable = make_gamma_table(gamma_value);
@@ -193,7 +178,7 @@ void loop()
         }
         M5.Log.printf("RGB(%3u,%3u,%3u) RGBC:%04X,%04X,%04X,%04X Sat?:%u IR:%d Lux:%.2f CTemp:%.2f CRATIO:%.2f\n",
                       unit.R8(), unit.G8(), unit.B8(), oldest.R16(), oldest.G16(), oldest.B16(), oldest.C16(),
-                      (oldest.C16() >= saturation), oldest.IR(), lux, ct, cratio);
+                      (oldest.C16() >= saturation), static_cast<int>(oldest.IR()), lux, ct, cratio);
     }
 
     // Single shot
