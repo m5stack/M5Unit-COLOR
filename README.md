@@ -49,9 +49,9 @@ idf.py build flash monitor
 
 |Unit|Support|Note|
 |---|---|---|
-|UnitColor|OK|See the `ViaPaHub` example|
+|UnitColor|OK||
 
-See also [M5Unit-HUB](https://github.com/m5stack/M5Unit-HUB)
+See also the [ViaPaHub](examples/UnitUnified/UnitColor/ViaPaHub) example and [M5Unit-HUB](https://github.com/m5stack/M5Unit-HUB)
 
 ## Doxygen document
 [GitHub Pages](https://m5stack.github.io/M5Unit-COLOR/)
