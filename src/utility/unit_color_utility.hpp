@@ -11,9 +11,11 @@
 #define M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_HPP
 
 #include "../unit/unit_TCS3472x.hpp"
+#include <algorithm>
 #include <cmath>
 #include <tuple>
 #include <cassert>
+#include <type_traits>
 
 namespace m5 {
 namespace unit {
@@ -21,29 +23,28 @@ namespace tcs3472x {
 
 ///@name Coefficients for Lux and CT Equations
 ///@{
-constexpr float GA{1.0f};
-// constexpr float GA{1.08f}; // Placing the parts behind clear glass requires using GA = 1.08
-constexpr float DF{310.f};
-constexpr float DGF{GA * DF};
-constexpr float R_Coef{0.136f};
-constexpr float G_Coef{1.0f};
-constexpr float B_Coef{-0.444f};
-constexpr float CT_Coef{3810.f};
-constexpr float CT_Offset{1391.f};
+// GA = 1.08 when the sensor is placed behind clear glass (pass it via dgf)
+constexpr float GA{1.0f};           //!< Glass attenuation factor (open air)
+constexpr float DF{310.f};          //!< Device factor
+constexpr float DGF{GA * DF};       //!< Device and glass factor
+constexpr float R_Coef{0.136f};     //!< Lux coefficient for the red channel
+constexpr float G_Coef{1.0f};       //!< Lux coefficient for the green channel
+constexpr float B_Coef{-0.444f};    //!< Lux coefficient for the blue channel
+constexpr float CT_Coef{3810.f};    //!< Color temperature coefficient
+constexpr float CT_Offset{1391.f};  //!< Color temperature offset
 ///@}
 
 ///@name For A/WTIME
 ///@{
-constexpr float AT_NORMAL_FACTOR = 2.4f;
-constexpr float AT_NORMAL_MIN    = AT_NORMAL_FACTOR;        // 2.4ms
-constexpr float AT_NORMAL_MAX    = 256 * AT_NORMAL_FACTOR;  // 614.4ms
-//
-constexpr float WT_NORMAL_FACTOR = AT_NORMAL_FACTOR;
-constexpr float WT_NORMAL_MIN    = WT_NORMAL_FACTOR;        // 2.4ms
-constexpr float WT_NORMAL_MAX    = 256 * WT_NORMAL_FACTOR;  // 614.4ms
-constexpr float WT_LONG_FACTOR   = 2.4f * 12.f;
-constexpr float WT_LONG_MIN      = WT_LONG_FACTOR;        // 28.8ms
-constexpr float WT_LONG_MAX      = 256 * WT_LONG_FACTOR;  // 7372.8ms
+constexpr float AT_NORMAL_FACTOR{2.4f};                 //!< ATIME step (ms)
+constexpr float AT_NORMAL_MIN{AT_NORMAL_FACTOR};        //!< Minimum ATIME (2.4 ms)
+constexpr float AT_NORMAL_MAX{256 * AT_NORMAL_FACTOR};  //!< Maximum ATIME (614.4 ms)
+constexpr float WT_NORMAL_FACTOR{AT_NORMAL_FACTOR};     //!< WTIME step (ms)
+constexpr float WT_NORMAL_MIN{WT_NORMAL_FACTOR};        //!< Minimum WTIME (2.4 ms)
+constexpr float WT_NORMAL_MAX{256 * WT_NORMAL_FACTOR};  //!< Maximum WTIME without WLONG (614.4 ms)
+constexpr float WT_LONG_FACTOR{2.4f * 12.f};            //!< WTIME step with WLONG (ms)
+constexpr float WT_LONG_MIN{WT_LONG_FACTOR};            //!< Minimum WTIME with WLONG (28.8 ms)
+constexpr float WT_LONG_MAX{256 * WT_LONG_FACTOR};      //!< Maximum WTIME with WLONG (7372.8 ms)
 ///@}
 
 /*!
@@ -52,6 +53,7 @@ constexpr float WT_LONG_MAX      = 256 * WT_LONG_FACTOR;  // 7372.8ms
  */
 struct Calibration {
     /*!
+      @brief Constructor
       @param br Black reference value for red
       @param wr White reference value for red
       @param bg Black reference value for green
@@ -91,7 +93,13 @@ struct Calibration {
         return linear(d.BnoIR16(), blackB, whiteB);
     }
 
-    //! @brief Linear interpolation in a specified range
+    /*!
+      @brief Linear interpolation in a specified range
+      @param raw Raw value
+      @param low Raw value mapped to 0
+      @param high Raw value mapped to 255
+      @return Value scaled to 0-255 (clamped)
+     */
     inline static uint8_t linear(const uint16_t raw, const uint16_t low, const uint16_t high)
     {
         if (raw <= low) {
@@ -105,26 +113,43 @@ struct Calibration {
     }
 };
 
-//! @brief ATIME to ms
+/*!
+  @brief ATIME to ms
+  @param a ATIME raw value
+  @return Integration time (ms)
+ */
 inline float atime_to_ms(const uint8_t a)
 {
     return 2.4f * (256 - a);
 }
 
-//! @brief WTIME and WLONG to ms
+/*!
+  @brief WTIME and WLONG to ms
+  @param w WTIME raw value
+  @param wlong True if WLONG is set (x12)
+  @return Wait time (ms)
+ */
 inline float wtime_to_ms(const uint8_t w, const bool wlong)
 {
     return atime_to_ms(w) * (wlong ? 12 : 1);
 }
 
-//! @brief ms to ATIME
+/*!
+  @brief ms to ATIME
+  @param ms Integration time (ms)
+  @return ATIME raw value (clamped)
+ */
 inline uint8_t ms_to_atime(const float ms)
 {
     int tmp = 256 - std::round(ms / 2.4f);
     return static_cast<uint8_t>(std::max(std::min(tmp, 0xFF), 0x00));
 }
 
-//! @brief ms to WTIME and WLONG
+/*!
+  @brief ms to WTIME and WLONG
+  @param ms Wait time (ms), clamped to 2.4 - 7372.8
+  @return Tuple of (WTIME raw value, WLONG)
+ */
 std::tuple<uint8_t, bool> ms_to_wtime(const float ms);
 
 /*!
@@ -178,13 +203,25 @@ inline uint16_t calculateSaturation(const float atime_ms)
 }
 
 /*!
+  @brief Calculate Saturation
+  @param atime ATIME raw value (integer types other than uint8_t are treated as raw values too)
+  @return Saturation value
+ */
+template <typename T, typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, uint8_t>::value,
+                                              std::nullptr_t>::type = nullptr>
+inline uint16_t calculateSaturation(const T atime)
+{
+    return calculateSaturation(static_cast<uint8_t>(atime));
+}
+
+/*!
   @brief Calculate CRATIO
   @param rawR raw red value
   @param rawG raw green value
   @param rawB raw blue value
   @param rawC raw clear value
   @return CRATIO (0.0f - 1.0f)
-  Guidelines for CRATIO and Light Source Correspondence
+  @details Guidelines for CRATIO and Light Source Correspondence
   |Compare|Description|
   |---|---|
   |CRATIO < 0.1 | LED or fluorescent light |
@@ -247,7 +284,7 @@ using make_index_sequence = make_integer_sequence<size_t, N>;
 #define M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CONSTEXPR
 #endif
 
-M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CONSTEXPR uint8_t calculate_gamma(const float x, const float gamma)
+inline M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CONSTEXPR uint8_t calculate_gamma(const float x, const float gamma)
 {
     return static_cast<uint8_t>(std::pow(x, gamma) * 255);
 }
