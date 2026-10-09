@@ -12,7 +12,7 @@
 #ifndef M5_UNIT_COLOR_UTILITY_COLOR_CORRECTION_HPP
 #define M5_UNIT_COLOR_UTILITY_COLOR_CORRECTION_HPP
 
-#include "../unit/unit_TCS3472x.hpp"
+#include "../unit/unit_TCS3472x_data.hpp"
 #include <cstdint>
 
 namespace m5 {
