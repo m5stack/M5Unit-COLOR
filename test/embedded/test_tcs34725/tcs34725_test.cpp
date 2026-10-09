@@ -72,13 +72,15 @@ TEST_F(TestTCS34725, BeginAppliesConfig)
     EXPECT_TRUE(unit->readGain(gain));
     EXPECT_EQ(gain, Gain::Controlx4);  // default config gain
 
-    float atime{};
+    uint8_t atime{};
     EXPECT_TRUE(unit->readAtime(atime));
-    EXPECT_NEAR(atime, 614.4f, 2.4f);  // default config atime
+    EXPECT_EQ(atime, ms_to_atime(614.4f));  // default config atime (raw 0x00)
 
-    float wtime{};
-    EXPECT_TRUE(unit->readWtime(wtime));
-    EXPECT_NEAR(wtime, 2.4f, 2.4f);  // default config wtime
+    uint8_t wtime{};
+    bool wlong{};
+    EXPECT_TRUE(unit->readWtime(wtime, wlong));
+    EXPECT_EQ(wtime, 0xFF);  // default config wtime 2.4 ms
+    EXPECT_FALSE(wlong);
 
     // Restart for subsequent tests
     EXPECT_TRUE(unit->startPeriodicMeasurement());
@@ -189,6 +191,11 @@ TEST_F(TestTCS34725, Settings)
                 //
                 EXPECT_TRUE(unit->writeWtime(ft));
                 EXPECT_TRUE(unit->readWtime(w, wlong));
+                uint8_t ew{};
+                bool ewl{};
+                std::tie(ew, ewl) = ms_to_wtime(ft);
+                EXPECT_EQ(w, ew);
+                EXPECT_EQ(wlong, ewl);
 
                 float fw{};
                 EXPECT_TRUE(unit->readWtime(fw));
@@ -259,10 +266,237 @@ TEST_F(TestTCS34725, Interrupt)
     }
 }
 
-TEST_F(TestTCS34725, Data)
+TEST_F(TestTCS34725, Periodic)
 {
     SCOPED_TRACE(ustr);
 
+    EXPECT_TRUE(unit->inPeriodic());
+
+    // inPeriodic
+    EXPECT_FALSE(unit->startPeriodicMeasurement());
+    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 100.f, 200.f));
+
+    EXPECT_TRUE(unit->stopPeriodicMeasurement());
+    EXPECT_FALSE(unit->inPeriodic());
+
+    // Invalid params
+    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 1.2f, 100.f));
+    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 1111.2f, 100.f));
+    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 12.3f, 1.2f));
+    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 12.3f, 7777.f));
+
+    constexpr float tm_table[][2] = {
+        // ATIME, WTIME
+        {2.4f, 2.4f}, {614.4f, 2.4f}, {2.4f, 614.4f}, {123.4f, 234.5f}, {614.4f, 7372.8f},
+    };
+
+    // Gain does not affect timing; test with one gain, varying ATIME/WTIME
+    constexpr size_t tm_count = sizeof(tm_table) / sizeof(tm_table[0]);
+    for (size_t i = 0; i < tm_count; ++i) {
+        auto& tm = tm_table[i];
+        auto s   = m5::utility::formatString("A:%f W:%f", tm[0], tm[1]);
+        SCOPED_TRACE(s);
+        M5_LOGI("[%u/%u] ATIME:%.1f WTIME:%.1f interval:%lu", (unsigned)(i + 1), (unsigned)tm_count, tm[0], tm[1],
+                (unsigned long)(std::round(tm[0] + tm[1])));
+
+        EXPECT_TRUE(unit->startPeriodicMeasurement(Gain::Controlx4, tm[0], tm[1]));
+        EXPECT_TRUE(unit->inPeriodic());
+
+        auto r = collect_periodic_measurements(unit.get(), STORED_SIZE);
+        EXPECT_TRUE(unit->stopPeriodicMeasurement());
+        EXPECT_FALSE(unit->inPeriodic());
+
+        EXPECT_FALSE(r.timed_out);
+        EXPECT_EQ(r.update_count, STORED_SIZE);
+        EXPECT_LE(r.median(), r.expected_interval + 1);
+
+        EXPECT_EQ(unit->available(), STORED_SIZE);
+        EXPECT_FALSE(unit->empty());
+        EXPECT_TRUE(unit->full());
+
+        uint32_t cnt{STORED_SIZE / 2};
+        while (cnt-- && unit->available()) {
+            EXPECT_EQ(unit->R8(), unit->oldest().R8());
+            EXPECT_EQ(unit->G8(), unit->oldest().G8());
+            EXPECT_EQ(unit->B8(), unit->oldest().B8());
+            EXPECT_EQ(unit->RGB565(), unit->oldest().RGB565());
+
+            EXPECT_FALSE(unit->empty());
+            unit->discard();
+        }
+        EXPECT_EQ(unit->available(), STORED_SIZE / 2);
+        EXPECT_FALSE(unit->empty());
+        EXPECT_FALSE(unit->full());
+
+        unit->flush();
+        EXPECT_EQ(unit->available(), 0);
+        EXPECT_TRUE(unit->empty());
+        EXPECT_FALSE(unit->full());
+
+        EXPECT_EQ(unit->R8(), 0);
+        EXPECT_EQ(unit->G8(), 0);
+        EXPECT_EQ(unit->B8(), 0);
+        EXPECT_EQ(unit->RGB565(), 0);
+    }
+}
+
+TEST_F(TestTCS34725, Singleshot)
+{
+    SCOPED_TRACE(ustr);
+
+    Data d{};
+
+    EXPECT_TRUE(unit->inPeriodic());
+    EXPECT_FALSE(unit->measureSingleshot(d));
+
+    EXPECT_TRUE(unit->stopPeriodicMeasurement());
+    EXPECT_FALSE(unit->inPeriodic());
+
+    // Out of range ATIME is rejected
+    EXPECT_FALSE(unit->measureSingleshot(d, Gain::Controlx1, 1.2f));
+    EXPECT_FALSE(unit->measureSingleshot(d, Gain::Controlx1, 700.f));
+    EXPECT_FALSE(unit->measureSingleshot(d, Gain::Controlx1, 0.0f / 0.0f));  // NaN
+
+    constexpr float at[4] = {2.4f, 234.56f, 456.78f, 614.4f};
+    uint32_t idx{};
+    for (auto&& gc : gain_table) {
+        auto s = m5::utility::formatString("GC:%x", m5::stl::to_underlying(gc));
+        SCOPED_TRACE(s);
+
+        uint32_t cnt{2};
+        while (cnt--) {
+            EXPECT_TRUE(unit->measureSingleshot(d, gc, at[idx]));
+            // M5_LOGW("GC:%u %.2f [%u]:(%x,%x,%x,%x) %x", gc, at[idx], cnt, d.R16(), d.G16(), d.B16(), d.C16(),
+            //         d.RGB565());
+        }
+        ++idx;
+    }
+}
+
+TEST_F(TestTCS34725, Status)
+{
+    SCOPED_TRACE(ustr);
+
+    uint8_t status{};
+    EXPECT_TRUE(unit->readStatus(status));
+
+    // The fixture starts periodic measurement, so AVALID (bit 0) is set after one integration cycle
+    EXPECT_TRUE(unit->inPeriodic());
+    const auto start_at = m5::utility::millis();
+    while (!m5::utility::hasElapsed(start_at, 2000)) {
+        unit->update();
+        if (unit->updated()) {
+            break;
+        }
+        m5::utility::delay(1);
+    }
+    EXPECT_TRUE(unit->updated());
+    EXPECT_TRUE(unit->readStatus(status));
+    EXPECT_TRUE(status & 0x01);  // AVALID
+}
+
+// ============================================================
+// Test with start_periodic=false
+// ============================================================
+
+class TestTCS34725NoPeriodic : public I2CComponentTestBase<UnitTCS34725> {
+protected:
+    virtual UnitTCS34725* get_instance() override
+    {
+        auto ptr         = new m5::unit::UnitTCS34725();
+        auto ccfg        = ptr->component_config();
+        ccfg.stored_size = STORED_SIZE;
+        ptr->component_config(ccfg);
+
+        auto cfg           = ptr->config();
+        cfg.start_periodic = false;
+        ptr->config(cfg);
+        return ptr;
+    }
+};
+
+TEST_F(TestTCS34725NoPeriodic, BeginWithoutPeriodic)
+{
+    SCOPED_TRACE(ustr);
+
+    // begin() with start_periodic=false should not start periodic measurement
+    EXPECT_FALSE(unit->inPeriodic());
+
+    // Should be able to do singleshot
+    Data d{};
+    EXPECT_TRUE(unit->measureSingleshot(d));
+}
+
+// ============================================================
+// Test with a non-default config
+// ============================================================
+
+class TestTCS34725Config : public I2CComponentTestBase<UnitTCS34725> {
+protected:
+    virtual UnitTCS34725* get_instance() override
+    {
+        auto ptr         = new m5::unit::UnitTCS34725();
+        auto ccfg        = ptr->component_config();
+        ccfg.stored_size = STORED_SIZE;
+        ptr->component_config(ccfg);
+
+        auto cfg  = ptr->config();
+        cfg.gain  = Gain::Controlx16;
+        cfg.atime = 100.8f;
+        cfg.wtime = 1000.f;  // Needs WLONG
+        ptr->config(cfg);
+        return ptr;
+    }
+};
+
+TEST_F(TestTCS34725Config, BeginAppliesConfig)
+{
+    SCOPED_TRACE(ustr);
+
+    EXPECT_TRUE(unit->inPeriodic());
+    EXPECT_TRUE(unit->stopPeriodicMeasurement());
+
+    Gain gain{};
+    EXPECT_TRUE(unit->readGain(gain));
+    EXPECT_EQ(gain, Gain::Controlx16);
+
+    uint8_t atime{};
+    EXPECT_TRUE(unit->readAtime(atime));
+    EXPECT_EQ(atime, ms_to_atime(100.8f));
+
+    uint8_t wtime{}, ew{};
+    bool wlong{}, ewl{};
+    EXPECT_TRUE(unit->readWtime(wtime, wlong));
+    std::tie(ew, ewl) = ms_to_wtime(1000.f);
+    EXPECT_EQ(wtime, ew);
+    EXPECT_EQ(wlong, ewl);
+    EXPECT_TRUE(wlong);
+}
+
+// ============================================================
+// Pure computation tests (no hardware required)
+// ============================================================
+
+namespace {
+
+Data make_data(uint16_t c, uint16_t r, uint16_t g, uint16_t b)
+{
+    Data d{};
+    d.raw[0] = c & 0xFF;
+    d.raw[1] = c >> 8;
+    d.raw[2] = r & 0xFF;
+    d.raw[3] = r >> 8;
+    d.raw[4] = g & 0xFF;
+    d.raw[5] = g >> 8;
+    d.raw[6] = b & 0xFF;
+    d.raw[7] = b >> 8;
+    return d;
+}
+
+}  // namespace
+
+TEST(DataStruct, RawAndConversions)
+{
     {
         Data d{};
 
@@ -343,6 +577,7 @@ TEST_F(TestTCS34725, Data)
         EXPECT_EQ(d.RnoIR16(), 0);
         EXPECT_EQ(d.GnoIR16(), 22136 - 8796);
         EXPECT_EQ(d.BnoIR16(), 39612 - 8796);
+        EXPECT_EQ(d.CnoIR16(), 48815 - 8796);
 
         EXPECT_EQ(d.R8(), (uint8_t)((0x1234 / (float)0xbeaf) * 255));
         EXPECT_EQ(d.G8(), (uint8_t)((0x5678 / (float)0xbeaf) * 255));
@@ -356,185 +591,6 @@ TEST_F(TestTCS34725, Data)
         //         d.CnoIR16(), d.RnoIR8(), d.GnoIR8(), d.BnoIR8());
     }
 }
-
-TEST_F(TestTCS34725, Periodic)
-{
-    SCOPED_TRACE(ustr);
-
-    EXPECT_TRUE(unit->inPeriodic());
-
-    // inPeriodic
-    EXPECT_FALSE(unit->startPeriodicMeasurement());
-    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 100.f, 200.f));
-
-    EXPECT_TRUE(unit->stopPeriodicMeasurement());
-    EXPECT_FALSE(unit->inPeriodic());
-
-    // Invalid params
-    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 1.2f, 100.f));
-    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 1111.2f, 100.f));
-    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 12.3f, 1.2f));
-    EXPECT_FALSE(unit->startPeriodicMeasurement(Gain::Controlx4, 12.3f, 7777.f));
-
-    constexpr float tm_table[][2] = {
-        // ATIME, WTIME
-        {2.4f, 2.4f}, {614.4f, 2.4f}, {2.4f, 614.4f}, {123.4f, 234.5f}, {614.4f, 7372.8f},
-    };
-
-    // Gain does not affect timing; test with one gain, varying ATIME/WTIME
-    constexpr size_t tm_count = sizeof(tm_table) / sizeof(tm_table[0]);
-    for (size_t i = 0; i < tm_count; ++i) {
-        auto& tm = tm_table[i];
-        auto s   = m5::utility::formatString("A:%f W:%f", tm[0], tm[1]);
-        SCOPED_TRACE(s);
-        M5_LOGI("[%u/%u] ATIME:%.1f WTIME:%.1f interval:%lu", (unsigned)(i + 1), (unsigned)tm_count, tm[0], tm[1],
-                (unsigned long)(std::round(tm[0] + tm[1])));
-
-        EXPECT_TRUE(unit->startPeriodicMeasurement(Gain::Controlx4, tm[0], tm[1]));
-        EXPECT_TRUE(unit->inPeriodic());
-
-        auto r = collect_periodic_measurements(unit.get(), STORED_SIZE);
-        EXPECT_TRUE(unit->stopPeriodicMeasurement());
-        EXPECT_FALSE(unit->inPeriodic());
-
-        EXPECT_FALSE(r.timed_out);
-        EXPECT_EQ(r.update_count, STORED_SIZE);
-        EXPECT_LE(r.median(), r.expected_interval + 1);
-
-        EXPECT_EQ(unit->available(), STORED_SIZE);
-        EXPECT_FALSE(unit->empty());
-        EXPECT_TRUE(unit->full());
-
-        uint32_t cnt{STORED_SIZE / 2};
-        while (cnt-- && unit->available()) {
-            EXPECT_NE(unit->RGB565(), 0);
-            EXPECT_EQ(unit->R8(), unit->oldest().R8());
-            EXPECT_EQ(unit->G8(), unit->oldest().G8());
-            EXPECT_EQ(unit->B8(), unit->oldest().B8());
-            EXPECT_EQ(unit->RGB565(), unit->oldest().RGB565());
-
-            EXPECT_FALSE(unit->empty());
-            unit->discard();
-        }
-        EXPECT_EQ(unit->available(), STORED_SIZE / 2);
-        EXPECT_FALSE(unit->empty());
-        EXPECT_FALSE(unit->full());
-
-        unit->flush();
-        EXPECT_EQ(unit->available(), 0);
-        EXPECT_TRUE(unit->empty());
-        EXPECT_FALSE(unit->full());
-
-        EXPECT_EQ(unit->R8(), 0);
-        EXPECT_EQ(unit->G8(), 0);
-        EXPECT_EQ(unit->B8(), 0);
-        EXPECT_EQ(unit->RGB565(), 0);
-    }
-}
-
-TEST_F(TestTCS34725, Singleshot)
-{
-    SCOPED_TRACE(ustr);
-
-    Data d{};
-
-    EXPECT_TRUE(unit->inPeriodic());
-    EXPECT_FALSE(unit->measureSingleshot(d));
-
-    EXPECT_TRUE(unit->stopPeriodicMeasurement());
-    EXPECT_FALSE(unit->inPeriodic());
-
-    constexpr float at[4] = {2.4f, 234.56f, 456.78f, 614.4f};
-    uint32_t idx{};
-    for (auto&& gc : gain_table) {
-        auto s = m5::utility::formatString("GC:%x", gc);
-        SCOPED_TRACE(s);
-
-        uint32_t cnt{2};
-        while (cnt--) {
-            EXPECT_TRUE(unit->measureSingleshot(d, gc, at[idx]));
-            // M5_LOGW("GC:%u %.2f [%u]:(%x,%x,%x,%x) %x", gc, at[idx], cnt, d.R16(), d.G16(), d.B16(), d.C16(),
-            //         d.RGB565());
-        }
-        ++idx;
-    }
-}
-
-TEST_F(TestTCS34725, Status)
-{
-    SCOPED_TRACE(ustr);
-
-    uint8_t status{};
-    EXPECT_TRUE(unit->readStatus(status));
-    // AVALID bit (bit 0) should be set if periodic measurement is running
-    if (unit->inPeriodic()) {
-        // Wait for at least one integration cycle
-        auto timeout_at = m5::utility::millis() + 2000;
-        while (m5::utility::millis() < timeout_at) {
-            unit->update();
-            if (unit->updated()) {
-                break;
-            }
-            m5::utility::delay(1);
-        }
-        EXPECT_TRUE(unit->readStatus(status));
-        EXPECT_TRUE(status & 0x01);  // AVALID
-    }
-}
-
-// ============================================================
-// Test with start_periodic=false
-// ============================================================
-
-class TestTCS34725NoPeriodic : public I2CComponentTestBase<UnitTCS34725> {
-protected:
-    virtual UnitTCS34725* get_instance() override
-    {
-        auto ptr         = new m5::unit::UnitTCS34725();
-        auto ccfg        = ptr->component_config();
-        ccfg.stored_size = STORED_SIZE;
-        ptr->component_config(ccfg);
-
-        auto cfg           = ptr->config();
-        cfg.start_periodic = false;
-        ptr->config(cfg);
-        return ptr;
-    }
-};
-
-TEST_F(TestTCS34725NoPeriodic, BeginWithoutPeriodic)
-{
-    SCOPED_TRACE(ustr);
-
-    // begin() with start_periodic=false should not start periodic measurement
-    EXPECT_FALSE(unit->inPeriodic());
-
-    // Should be able to do singleshot
-    Data d{};
-    EXPECT_TRUE(unit->measureSingleshot(d));
-}
-
-// ============================================================
-// Pure computation tests (no hardware required)
-// ============================================================
-
-namespace {
-
-Data make_data(uint16_t c, uint16_t r, uint16_t g, uint16_t b)
-{
-    Data d{};
-    d.raw[0] = c & 0xFF;
-    d.raw[1] = c >> 8;
-    d.raw[2] = r & 0xFF;
-    d.raw[3] = r >> 8;
-    d.raw[4] = g & 0xFF;
-    d.raw[5] = g >> 8;
-    d.raw[6] = b & 0xFF;
-    d.raw[7] = b >> 8;
-    return d;
-}
-
-}  // namespace
 
 // Data struct edge cases
 
