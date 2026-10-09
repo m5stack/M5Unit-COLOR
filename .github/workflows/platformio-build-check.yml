@@ -55,69 +55,40 @@ jobs:
       matrix:
         example:
           - PlotToSerial
+          # The hub example goes through UnitPaHub (M5Unit-HUB), so it is built on every representative board
+          - ViaPaHub
 
         unit:
           - UnitColor
 
         board:
+          # Reduced from 19 to 5 boards: one per compile config (chip arch x platform).
+          # The other boards differ only in the variant header, so the library code compiles the same.
           - Core
-          - Core2
+#          - Core2  # ESP32: represented by Core
           - CoreS3
-          - Fire
-          - StampS3
-          - Dial
-          - Atom
-          - AtomS3
-          - AtomS3R
+#          - Fire  # ESP32: represented by Core
+#          - StampS3  # ESP32-S3: represented by CoreS3
+#          - Dial  # ESP32-S3: represented by CoreS3
+#          - Atom  # ESP32: represented by Core
+#          - AtomS3  # ESP32-S3: represented by CoreS3
+#          - AtomS3R  # ESP32-S3: represented by CoreS3
           - NanoC6
           - NanoH2
-          - StickCPlus
-          - StickCPlus2
-          - StickS3
-          - Paper
-          - CoreInk
-          - Cardputer
+#          - StickCPlus  # ESP32: represented by Core
+#          - StickCPlus2  # ESP32: represented by Core
+#          - StickS3  # ESP32-S3: represented by CoreS3
+#          - Paper  # ESP32: represented by Core
+#          - CoreInk  # ESP32: represented by Core
+#          - Cardputer  # ESP32-S3: represented by CoreS3
           - Tab5
-          - NessoN1
+#          - NessoN1  # ESP32-C6: represented by NanoC6
 
         framework:
           - Arduino
 
         espressif32:
           - latest
-
-        # ViaPaHub: built on one representative board per compile config (M5Unit-HUB is an example-only dependency)
-        include:
-          - example: ViaPaHub
-            unit: UnitColor
-            board: Core
-            framework: Arduino
-            espressif32: latest
-          - example: ViaPaHub
-            unit: UnitColor
-            board: CoreS3
-            framework: Arduino
-            espressif32: latest
-          - example: ViaPaHub
-            unit: UnitColor
-            board: NanoC6
-            framework: Arduino
-            espressif32: latest
-          - example: ViaPaHub
-            unit: UnitColor
-            board: NanoH2
-            framework: Arduino
-            espressif32: latest
-          - example: ViaPaHub
-            unit: UnitColor
-            board: Tab5
-            framework: Arduino
-            espressif32: latest
-#          - example: ViaPaHub  # ESP32-C6 (SoftwareI2C parent bus): represented by NanoC6
-#            unit: UnitColor
-#            board: NessoN1
-#            framework: Arduino
-#            espressif32: latest
 
     steps:
       - name: Checkout
