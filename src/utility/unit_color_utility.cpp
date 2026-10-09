@@ -60,7 +60,7 @@ float calculateColorTemperature(const uint16_t rawR, const uint16_t rawG, const 
 {
     float ir = (rawR + rawG + rawB - rawC) * 0.5f;
     float rp = rawR - ir;
-    // float gp  = rawG - ir;
+    // G is not used in the CCT equation
     float bp = rawB - ir;
     if (rp <= 0.0f) {
         return std::numeric_limits<float>::quiet_NaN();
