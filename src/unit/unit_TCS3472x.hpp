@@ -7,11 +7,12 @@
   @file unit_TCS3472x.hpp
   @brief TCS3472x Unit for M5UnitUnified
 */
-#ifndef M5_UNIT_COLOR_UNIT_TCS3472_HPP
-#define M5_UNIT_COLOR_UNIT_TCS3472_HPP
+#ifndef M5_UNIT_COLOR_UNIT_TCS3472X_HPP
+#define M5_UNIT_COLOR_UNIT_TCS3472X_HPP
 
 #include <M5UnitComponent.hpp>
 #include <m5_utility/container/circular_buffer.hpp>
+#include <algorithm>
 #include <array>
 
 namespace m5 {
@@ -167,8 +168,10 @@ struct Data {
       @brief Gets the IR component
       @param usingCache If true, use cached value when available
       @return IR component value
+      @note The cache is rebuilt each time the unit reads a measurement into this object.
+      If raw is modified directly, call with usingCache = false
      */
-    inline int32_t IR(bool usingCache = true) const
+    inline int32_t IR(const bool usingCache = true) const
     {
         if (!usingCache || !_cacheValid) {
             _cache      = static_cast<int32_t>((static_cast<int32_t>(R16()) + static_cast<int32_t>(G16()) +
@@ -192,28 +195,58 @@ struct Data {
 
     ///@name Conversion (Same as M5GFX)
     ///@{
-    //! @brief Converts 8-bit RGB channels to RGB332 format
-    inline static constexpr uint8_t color332(uint8_t r, uint8_t g, uint8_t b)
+    /*!
+      @brief Converts 8-bit RGB channels to RGB332 format
+      @param r Red (0-255)
+      @param g Green (0-255)
+      @param b Blue (0-255)
+      @return RGB332 value
+     */
+    inline static constexpr uint8_t color332(const uint8_t r, const uint8_t g, const uint8_t b)
     {
         return ((((r >> 5) << 3) + (g >> 5)) << 2) + (b >> 6);
     }
-    //! @brief Converts 8-bit RGB channels to RGB565 format
-    inline static constexpr uint16_t color565(uint8_t r, uint8_t g, uint8_t b)
+    /*!
+      @brief Converts 8-bit RGB channels to RGB565 format
+      @param r Red (0-255)
+      @param g Green (0-255)
+      @param b Blue (0-255)
+      @return RGB565 value
+     */
+    inline static constexpr uint16_t color565(const uint8_t r, const uint8_t g, const uint8_t b)
     {
         return (r >> 3) << 11 | (g >> 2) << 5 | b >> 3;
     }
-    //! @brief Converts 8-bit RGB channels to RGB888 format
-    inline static constexpr uint32_t color888(uint8_t r, uint8_t g, uint8_t b)
+    /*!
+      @brief Converts 8-bit RGB channels to RGB888 format
+      @param r Red (0-255)
+      @param g Green (0-255)
+      @param b Blue (0-255)
+      @return RGB888 value
+     */
+    inline static constexpr uint32_t color888(const uint8_t r, const uint8_t g, const uint8_t b)
     {
         return r << 16 | g << 8 | b;
     }
-    //! @brief Converts 8-bit RGB channels to byte-swapped RGB565 format
-    inline static constexpr uint16_t swap565(uint8_t r, uint8_t g, uint8_t b)
+    /*!
+      @brief Converts 8-bit RGB channels to byte-swapped RGB565 format
+      @param r Red (0-255)
+      @param g Green (0-255)
+      @param b Blue (0-255)
+      @return byte-swapped RGB565 value
+     */
+    inline static constexpr uint16_t swap565(const uint8_t r, const uint8_t g, const uint8_t b)
     {
         return (((r >> 3) << 3) + (g >> 5)) | (((g >> 2) << 5) | (b >> 3)) << 8;
     }
-    //! @brief Converts 8-bit RGB channels to byte-swapped RGB888 format
-    inline static constexpr uint32_t swap888(uint8_t r, uint8_t g, uint8_t b)
+    /*!
+      @brief Converts 8-bit RGB channels to byte-swapped RGB888 format
+      @param r Red (0-255)
+      @param g Green (0-255)
+      @param b Blue (0-255)
+      @return byte-swapped RGB888 value
+     */
+    inline static constexpr uint32_t swap888(const uint8_t r, const uint8_t g, const uint8_t b)
     {
         return b << 16 | g << 8 | r;
     }
@@ -275,8 +308,8 @@ public:
 
     ///@name Settings for begin
     ///@{
-    /*! @brief Gets the configuration */
-    inline config_t config()
+    //! @brief Gets the configuration
+    inline config_t config() const
     {
         return _cfg;
     }
@@ -362,7 +395,7 @@ public:
     /*!
       @brief Write the RGBC integration time (ATIME)
       @param ms ATIME in ms
-      @return True if successful
+      @return True if successful, false if ms is out of range or writing fails
       @note Converted to approximate raw values and set
       @warning Valid range 2.4 - 614.4
      */
@@ -390,7 +423,7 @@ public:
     /*!
       @brief Write the wait time (WTIME)
       @param ms WTIME in ms
-      @return True if successful
+      @return True if successful, false if ms is out of range or writing fails
       @note Converted to approximate raw values and set
       @warning Valid range 2.4 - 7372.8
      */
@@ -410,7 +443,10 @@ public:
     {
         return PeriodicMeasurementAdapter<UnitTCS3472x, tcs3472x::Data>::startPeriodicMeasurement(gc, atime, wtime);
     }
-    //! @brief Start periodic measurement using current settings
+    /*!
+      @brief Start periodic measurement using current settings
+      @return True if successful
+    */
     inline bool startPeriodicMeasurement()
     {
         return PeriodicMeasurementAdapter<UnitTCS3472x, tcs3472x::Data>::startPeriodicMeasurement();
@@ -434,11 +470,16 @@ public:
       @param gc Gain
       @param atime Integration time(ms)
       @return True if successful
-      @warning During periodic detection runs, an error is returned
+      @warning During periodic measurement, an error is returned
       @warning Each setting is overwritten
     */
     bool measureSingleshot(tcs3472x::Data& d, const tcs3472x::Gain gc, const float atime);
-    //! @brief Measurement single shot using current settings
+    /*!
+      @brief Measurement single shot using current settings
+      @param[out] d Measured data
+      @return True if successful
+      @warning During periodic measurement, an error is returned
+    */
     bool measureSingleshot(tcs3472x::Data& d);
     ///@}
 
@@ -471,7 +512,10 @@ public:
      */
     bool writeInterruptThreshold(const uint16_t low, const uint16_t high);
 
-    //! @brief Clear interrupt
+    /*!
+      @brief Clear interrupt
+      @return True if successful
+     */
     bool clearInterrupt();
     ///@}
 
@@ -483,15 +527,13 @@ public:
     bool readStatus(uint8_t& status);
 
 protected:
-    inline virtual bool is_valid_id(const uint8_t id)
+    inline virtual bool is_valid_id(const uint8_t /*id*/) const
     {
         return false;
     }
 
     bool read_register8(const uint8_t reg, uint8_t& val);
     bool write_register8(const uint8_t reg, const uint8_t val);
-    // bool read_register16(const uint8_t reg, uint16_t& val);
-    // bool write_register16(const uint8_t reg, const uint16_t val);
     bool read_register(const uint8_t reg, uint8_t* buf, const uint32_t len);
     bool write_register(const uint8_t reg, const uint8_t* buf, const uint32_t len);
 
@@ -532,7 +574,7 @@ public:
     static constexpr uint8_t UNIT_ID{0x44};
 
 protected:
-    inline virtual bool is_valid_id(const uint8_t id) override
+    inline virtual bool is_valid_id(const uint8_t id) const override
     {
         return id == UNIT_ID;
     }
@@ -559,7 +601,7 @@ public:
     static constexpr uint8_t UNIT_ID{0x4D};
 
 protected:
-    inline virtual bool is_valid_id(const uint8_t id) override
+    inline virtual bool is_valid_id(const uint8_t id) const override
     {
         return id == UNIT_ID;
     }
