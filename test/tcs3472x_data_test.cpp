@@ -384,6 +384,14 @@ TEST(Utility, GammaTable)
     EXPECT_EQ(table_25[0], 0);
     EXPECT_EQ(table_25[255], 255);
     EXPECT_LT(table_25[128], table_22[128]);
+
+    // gamma=1/2.2 (sRGB-like encoding for a display) brightens midtones
+    auto table_enc = make_gamma_table(1.0f / 2.2f);
+    EXPECT_EQ(table_enc[0], 0);
+    EXPECT_EQ(table_enc[255], 255);
+    EXPECT_GT(table_enc[128], 128);
+    // Rounded, not truncated: (3/255)^(1/2.2) * 255 = 33.85
+    EXPECT_EQ(table_enc[3], 34);
 }
 
 // Color corrections

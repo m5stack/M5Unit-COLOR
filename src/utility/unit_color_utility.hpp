@@ -286,7 +286,7 @@ using make_index_sequence = make_integer_sequence<size_t, N>;
 
 inline M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CONSTEXPR uint8_t calculate_gamma(const float x, const float gamma)
 {
-    return static_cast<uint8_t>(std::pow(x, gamma) * 255);
+    return static_cast<uint8_t>(std::pow(x, gamma) * 255 + 0.5f);  // Rounded
 }
 
 template <size_t... Indices>
@@ -300,9 +300,11 @@ M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CONSTEXPR std::array<uint8_t, sizeof...
 /*!
   @brief Make gamma table
   @tparam Size Table size
-  @param gamma Gamma value
+  @param gamma Gamma value. Each entry is (index / 255)^gamma * 255 (rounded)
   @return std::array<uint8_t, Size> gamma table
   @note Make on compile time if it can
+  @note The sensor values are linear in light. Use 1/2.2 to show them on a display (sRGB-like encoding),
+  and 2.2 - 2.8 to drive an LED by PWM so that it looks right to the eye
  */
 template <size_t Size = 256>
 M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CONSTEXPR std::array<uint8_t, Size> make_gamma_table(const float gamma = 2.2f)

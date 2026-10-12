@@ -11,6 +11,9 @@
     Gamma -> Pure hue -> Brightness normalization -> Color name -> Grayscale
   BtnA click: Single shot measurement
   BtnA hold : Switch the correction of bar 4
+  BtnB hold : Calibrate black (cover the sensor)
+  BtnC hold : Calibrate white (put a white paper over the sensor)
+  (CoreS3 / Tab5: the touch buttons at the bottom of the screen. Boards without BtnB / BtnC use the values below)
 */
 #include <M5Unified.h>
 #include <M5UnitUnified.h>
@@ -32,8 +35,8 @@ uint16_t saturation{};
 // ************************************************************************
 // Self calibration
 // NOTICE:
-// Set the appropriate value for your measurement environment.
-// Values vary widely depending on ambient light.
+// Set the appropriate value for your measurement environment, or hold BtnB / BtnC to record black / white.
+// Values vary widely depending on ambient light, gain and integration time.
 // Also, when using this correction, the value of Clear is ignored.
 // ************************************************************************
 #if 0
@@ -51,7 +54,9 @@ Calibration calib{
 #endif
 
 // Gamma table
-constexpr float gamma_value{2.5f};  // Set the appropriate value for your measurement environment
+// The sensor values are linear in light, but the display expects gamma-encoded (sRGB) values,
+// so encode them with 1/2.2 to make them look right on the screen
+constexpr float gamma_value{1.0f / 2.2f};
 #if defined(M5_UNIT_COLOR_UTILITY_UNIT_COLOR_UTILITY_CAN_CONSTEXPR_MAKE_GAMMA_TABLE)
 constexpr auto gammaTable = make_gamma_table(gamma_value);
 #else
@@ -64,6 +69,32 @@ constexpr uint8_t correction_count{5};
 constexpr const char* correction_label[correction_count]       = {"CalbGam", "PureHue", "Bright", "ColName", "Gray"};
 constexpr const char* correction_short_label[correction_count] = {"Gam", "Hue", "Bri", "Nam", "Gry"};
 Correction correction{Correction::Gamma};
+
+// Latest measurement, used for the calibration by BtnB / BtnC
+Data latest{};
+
+// Record the latest raw values (without IR) as black or white. Rejected if black would not be below white
+void calibrate(const bool white)
+{
+    const uint16_t r{latest.RnoIR16()}, g{latest.GnoIR16()}, b{latest.BnoIR16()};
+    Calibration c{calib};
+    if (white) {
+        c.whiteR = r;
+        c.whiteG = g;
+        c.whiteB = b;
+    } else {
+        c.blackR = r;
+        c.blackG = g;
+        c.blackB = b;
+    }
+    if (c.whiteR <= c.blackR || c.whiteG <= c.blackG || c.whiteB <= c.blackB) {
+        M5_LOGW("Calibration rejected: white must be brighter than black on all channels");
+        return;
+    }
+    calib = c;
+    M5_LOGI("Calibrated %s: R %04X-%04X G %04X-%04X B %04X-%04X", white ? "white" : "black", calib.blackR, calib.whiteR,
+            calib.blackG, calib.whiteG, calib.blackB, calib.whiteB);
+}
 
 RGB8 apply_correction(const uint8_t r, const uint8_t g, const uint8_t b)
 {
@@ -123,6 +154,7 @@ void loop()
 
     if (unit.updated()) {
         const auto& oldest = unit.oldest();
+        latest             = oldest;
         const uint8_t cr   = calib.R8(oldest);
         const uint8_t cg   = calib.G8(oldest);
         const uint8_t cb   = calib.B8(oldest);
@@ -215,6 +247,14 @@ void loop()
     if (M5.BtnA.wasHold()) {
         correction = static_cast<Correction>((m5::stl::to_underlying(correction) + 1) % correction_count);
         M5_LOGI("Bar 4: %s", correction_label[m5::stl::to_underlying(correction)]);
+    }
+
+    // Calibration
+    if (M5.BtnB.wasHold()) {
+        calibrate(false);
+    }
+    if (M5.BtnC.wasHold()) {
+        calibrate(true);
     }
 }
 
