@@ -7,7 +7,8 @@
   Example of using UnitColor via UnitPaHub
 
   Board ---> PaHub ---> ch:0 UnitColor
-  Prints the detected color to the serial output, and fills the screen with it when the board has a screen.
+  Prints the detected color to the serial output. When the board has a screen, the upper part is filled with the
+  color and the lower part shows the channel, the nearest color name and the values.
 */
 #include <M5Unified.h>
 #include <M5UnitUnified.h>
@@ -26,6 +27,46 @@ constexpr uint8_t UNIT_CHANNEL{0};  // PaHub channel the unit is connected to
 
 //! True when the board has a real screen (Atom / NanoC6 / NanoH2 / NessoN1 have none)
 bool has_lcd{};
+
+//! Two text lines at the bottom, drawn off-screen and pushed at once to avoid flicker
+M5Canvas canvas(&lcd);
+uint16_t latest_rgb565{};
+
+void setup_screen()
+{
+    lcd.fillScreen(TFT_BLACK);
+    // 6x8 font scaled so that 22 characters ("RGB 255 255 255 C:FFFF") fit the width
+    const int32_t text_size = std::max<int32_t>(1, lcd.width() / (22 * 6));
+    canvas.setPsram(false);
+    canvas.setColorDepth(1);  // Two colors: background and text
+    canvas.createSprite(lcd.width(), 8 * text_size * 2 + text_size * 4);
+    canvas.setPaletteColor(0, TFT_BLACK);
+    canvas.setPaletteColor(1, TFT_WHITE);
+    canvas.setTextSize(text_size);
+    canvas.setTextColor(1);
+}
+
+void draw_color(const m5::unit::tcs3472x::Data& d)
+{
+    const uint8_t r{d.R8()}, g{d.G8()}, b{d.B8()};
+    const auto name = m5::unit::tcs3472x::nearestColorName(r, g, b);
+
+    lcd.startWrite();
+    // Repaint the color area only when the color changes
+    const uint16_t rgb565{d.RGB565()};
+    if (rgb565 != latest_rgb565) {
+        latest_rgb565 = rgb565;
+        lcd.fillRect(0, 0, lcd.width(), lcd.height() - canvas.height(), rgb565);
+    }
+    const int32_t margin = canvas.getTextSizeX() * 2;
+    canvas.fillSprite(0);
+    canvas.setCursor(margin, margin);
+    canvas.printf("PaHub ch:%u %s\n", UNIT_CHANNEL, m5::unit::tcs3472x::colorNameToString(name));
+    canvas.setCursor(margin, canvas.getCursorY());
+    canvas.printf("RGB %3u %3u %3u C:%04X", r, g, b, d.C16());
+    canvas.pushSprite(0, lcd.height() - canvas.height());
+    lcd.endWrite();
+}
 }  // namespace
 
 void setup()
@@ -55,7 +96,7 @@ void setup()
     // A board without a screen reports a 1x1 dummy display
     has_lcd = (lcd.width() > 8 && lcd.height() > 8);
     if (has_lcd) {
-        lcd.fillScreen(TFT_BLACK);
+        setup_screen();
     }
 }
 
@@ -69,7 +110,7 @@ void loop()
         M5.Log.printf("RGB(%3u,%3u,%3u) RGBC:%04X,%04X,%04X,%04X\n", d.R8(), d.G8(), d.B8(), d.R16(), d.G16(), d.B16(),
                       d.C16());
         if (has_lcd && !lcd.isEPD()) {
-            lcd.fillScreen(d.RGB565());
+            draw_color(d);
         }
     }
 }
