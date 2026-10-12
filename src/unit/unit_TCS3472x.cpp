@@ -11,6 +11,7 @@
 #include "../utility/unit_color_utility.hpp"
 #include <M5Utility.hpp>
 #include <cmath>
+#include <cstring>
 
 using namespace m5::utility::mmh3;
 using namespace m5::unit::types;
@@ -130,8 +131,8 @@ void UnitTCS3472x::update(const bool force)
 {
     _updated = false;
     if (inPeriodic()) {
-        elapsed_time_t at{m5::utility::millis()};
-        if (force || !_latest || at >= _latest + _interval) {
+        const elapsed_time_t at{m5::utility::millis()};
+        if (force || !_latest || m5::utility::hasElapsed(_latest, _interval)) {
             Data d{};
             _updated = is_data_ready() && read_measurement(d);
             if (_updated) {
@@ -213,24 +214,27 @@ bool UnitTCS3472x::measureSingleshot(tcs3472x::Data& d)
     float atime{};
     if (readAtime(atime) && read_register8(ENABLE_REG, e.value)) {
         const auto original = e.value;
-        e.PON(true);  // power on
-        e.AEN(true);  // RGBC enable
+        e.PON(true);   // power on
+        e.AEN(true);   // RGBC enable
+        e.WEN(false);  // No wait cycle before the conversion
         if (!write_register8(ENABLE_REG, e.value)) {
             return false;
         }
-        uint32_t at     = std::ceil(atime);
-        auto timeout_at = m5::utility::millis() + at + 1000;
         Enable orig_e{};
-        orig_e.value = original;
-        m5::utility::delay(at + (!orig_e.PON() ? 3 : 0));  // Wait during ATIME
+        orig_e.value      = original;
+        const uint32_t at = std::ceil(atime);
+        // RGBC Init (2.4 ms) + ATIME, plus 2.4 ms after PON if the device was powered off
+        m5::utility::delay(3 + at + (!orig_e.PON() ? 3 : 0));
+        const auto start_at = m5::utility::millis();
         do {
             if (is_data_ready() && read_measurement(d)) {
                 return write_register8(ENABLE_REG, original);
             }
             m5::utility::delay(1);
-        } while (m5::utility::millis() <= timeout_at);
-
-        return write_register8(ENABLE_REG, original);
+        } while (!m5::utility::hasElapsed(start_at, 1000));
+        M5_LIB_LOGW("Measurement timed out");
+        write_register8(ENABLE_REG, original);
+        return false;
     }
     return false;
 }
@@ -309,8 +313,7 @@ bool UnitTCS3472x::writeAtime(const float ms)
         return false;
     }
 
-    float fa = std::fmax(std::fmin(ms, AT_NORMAL_MAX), AT_NORMAL_MIN);
-    return write_atime(ms_to_atime(fa));
+    return write_atime(ms_to_atime(ms));
 }
 
 bool UnitTCS3472x::readWtime(uint8_t& raw, bool& wlong)
@@ -353,10 +356,9 @@ bool UnitTCS3472x::writeWtime(const float ms)
         return false;
     }
 
-    float ft = std::fmax(std::fmin(ms, WT_LONG_MAX), WT_NORMAL_MIN);
     uint8_t raw{};
     bool wlong{};
-    std::tie(raw, wlong) = ms_to_wtime(ft);
+    std::tie(raw, wlong) = ms_to_wtime(ms);
     return writeWtime(raw, wlong);
 }
 
@@ -382,10 +384,10 @@ bool UnitTCS3472x::writeInterrupt(const bool enable)
 
 bool UnitTCS3472x::readInterruptThreshold(uint16_t& low, uint16_t& high)
 {
-    uint8_t rbuf[4]{};
-    if (read_register(AILTL_REG, rbuf, 4)) {
-        low  = (static_cast<uint16_t>(rbuf[1]) << 8) | rbuf[0];
-        high = (static_cast<uint16_t>(rbuf[3]) << 8) | rbuf[2];
+    m5::types::little_uint16_t v[2]{};
+    if (read_register(AILTL_REG, v[0].data(), sizeof(v))) {
+        low  = v[0].get();
+        high = v[1].get();
         return true;
     }
     return false;
@@ -393,12 +395,8 @@ bool UnitTCS3472x::readInterruptThreshold(uint16_t& low, uint16_t& high)
 
 bool UnitTCS3472x::writeInterruptThreshold(const uint16_t low, const uint16_t high)
 {
-    uint8_t buf[4]{};
-    buf[0] = low & 0xFF;
-    buf[1] = (low >> 8) & 0xFF;
-    buf[2] = high & 0xFF;
-    buf[3] = (high >> 8) & 0xFF;
-    return write_register(AILTL_REG, buf, 4);
+    const m5::types::little_uint16_t v[2]{m5::types::little_uint16_t{low}, m5::types::little_uint16_t{high}};
+    return write_register(AILTL_REG, v[0].data(), sizeof(v));
 }
 
 bool UnitTCS3472x::clearInterrupt()
@@ -420,7 +418,12 @@ bool UnitTCS3472x::is_data_ready()
 
 bool UnitTCS3472x::read_measurement(tcs3472x::Data& d)
 {
-    return read_register(CDATAL_REG, d.raw.data(), d.raw.size());
+    tcs3472x::Data tmp{};  // Fresh object so the IR cache of d is not carried over
+    if (read_register(CDATAL_REG, tmp.raw.data(), tmp.raw.size())) {
+        d = tmp;
+        return true;
+    }
+    return false;
 }
 
 bool UnitTCS3472x::read_register8(const uint8_t reg, uint8_t& val)

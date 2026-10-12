@@ -15,6 +15,7 @@
 
 #include "unit/unit_TCS3472x.hpp"
 #include "utility/unit_color_utility.hpp"
+#include "utility/color_correction.hpp"
 
 /*!
   @namespace m5
