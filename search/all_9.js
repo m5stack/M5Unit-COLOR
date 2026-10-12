@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['persistence_0',['Persistence',['../unit___t_c_s3472x_8hpp.html#a68ec090b1c8039c37ae29db9e3c70b4c',1,'m5::unit::tcs3472x']]]
+  ['nearestcolorname_0',['nearestColorName',['../color__correction_8cpp.html#a08f805589fdbc3ddf9a0753cba7105f9',1,'m5::unit::tcs3472x']]],
+  ['normalizebrightness_1',['normalizeBrightness',['../color__correction_8cpp.html#a11d8290453434b4dd0bf6e17bac48709',1,'m5::unit::tcs3472x']]]
 ];

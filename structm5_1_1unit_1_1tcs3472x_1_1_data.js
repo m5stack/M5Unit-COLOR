@@ -10,7 +10,7 @@ var structm5_1_1unit_1_1tcs3472x_1_1_data =
     [ "G8", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a22703f83ecbb93a163ae0300d5a84e2c", null ],
     [ "GnoIR16", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#ac9999ebe964daab0ae637db531a639b0", null ],
     [ "GnoIR8", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#aade8b647e1d3cf06b11698b2dd25808a", null ],
-    [ "IR", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a431c963d8e43000dc6a5d11ca954c0ac", null ],
+    [ "IR", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#aafb702907f45ae4d293c7915ff291e7f", null ],
     [ "R16", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a8c736b49dce791c135a55e08d129678c", null ],
     [ "R8", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#ad63df72157ce7b8a4b0184692e466983", null ],
     [ "RGB565", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a693a890ab2ff1f51885383a1e4614030", null ],
@@ -18,5 +18,6 @@ var structm5_1_1unit_1_1tcs3472x_1_1_data =
     [ "RGBnoIR565", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a1ea8263b850dc3cdbe170f67fcee0057", null ],
     [ "RGBnoIR888", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a5737fa18b2a1369a9d0aca5972b014db", null ],
     [ "RnoIR16", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a577abfcc229a17c5e340ff1346bb01f8", null ],
-    [ "RnoIR8", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#ae75013f7582ef8140231b206a977b0a7", null ]
+    [ "RnoIR8", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#ae75013f7582ef8140231b206a977b0a7", null ],
+    [ "raw", "structm5_1_1unit_1_1tcs3472x_1_1_data.html#a26b04a63af83cadeace8d1c87021b15c", null ]
 ];

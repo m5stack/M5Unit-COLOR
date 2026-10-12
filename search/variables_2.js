@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['start_5fperiodic_0',['start_periodic',['../structm5_1_1unit_1_1_unit_t_c_s3472x_1_1config__t.html#adb383661acbbc869fe1ced996cd93237',1,'m5::unit::UnitTCS3472x::config_t']]]
+  ['ct_5fcoef_0',['CT_Coef',['../unit__color__utility_8hpp.html#a8870ff61109af420edafc94556e261c2',1,'m5::unit::tcs3472x']]],
+  ['ct_5foffset_1',['CT_Offset',['../unit__color__utility_8hpp.html#a3688e63a007749ed6dee0375b5c36a99',1,'m5::unit::tcs3472x']]]
 ];

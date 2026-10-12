@@ -1,11 +1,8 @@
 var searchData=
 [
-  ['unit_0',['unit',['../namespaceunit.html',1,'']]],
-  ['unit_5fcolor_5futility_2ecpp_1',['unit_color_utility.cpp',['../unit__color__utility_8cpp.html',1,'']]],
-  ['unit_5fcolor_5futility_2ehpp_2',['unit_color_utility.hpp',['../unit__color__utility_8hpp.html',1,'']]],
-  ['unit_5ftcs3472x_2ecpp_3',['unit_TCS3472x.cpp',['../unit___t_c_s3472x_8cpp.html',1,'']]],
-  ['unit_5ftcs3472x_2ehpp_4',['unit_TCS3472x.hpp',['../unit___t_c_s3472x_8hpp.html',1,'']]],
-  ['unittcs34725_5',['UnitTCS34725',['../classm5_1_1unit_1_1_unit_t_c_s34725.html',1,'m5::unit']]],
-  ['unittcs34727_6',['UnitTCS34727',['../classm5_1_1unit_1_1_unit_t_c_s34727.html',1,'m5::unit']]],
-  ['unittcs3472x_7',['UnitTCS3472x',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html',1,'m5::unit']]]
+  ['start_5fperiodic_0',['start_periodic',['../structm5_1_1unit_1_1_unit_t_c_s3472x_1_1config__t.html#adb383661acbbc869fe1ced996cd93237',1,'m5::unit::UnitTCS3472x::config_t']]],
+  ['startperiodicmeasurement_1',['startPeriodicMeasurement',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#ae3d3e1fe176c51247117618c74263365',1,'m5::unit::UnitTCS3472x::startPeriodicMeasurement(const tcs3472x::Gain gc, const float atime, const float wtime)'],['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a5fb3de5f9ea0dacf122f1c9fe3d4be74',1,'m5::unit::UnitTCS3472x::startPeriodicMeasurement()']]],
+  ['stopperiodicmeasurement_2',['stopPeriodicMeasurement',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a3b83a630a78baf406adce351818444d6',1,'m5::unit::UnitTCS3472x']]],
+  ['swap565_3',['swap565',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a4e19a6af493312c143cd9acdd1ce0b42',1,'m5::unit::tcs3472x::Data']]],
+  ['swap888_4',['swap888',['../structm5_1_1unit_1_1tcs3472x_1_1_data.html#a73912e3a77d9fe839e7ed93673b77f61',1,'m5::unit::tcs3472x::Data']]]
 ];

@@ -11,5 +11,6 @@ var hierarchy =
     [ "m5::unit::tcs3472x::Data", "structm5_1_1unit_1_1tcs3472x_1_1_data.html", null ],
     [ "PeriodicMeasurementAdapter", null, [
       [ "m5::unit::UnitTCS3472x", "classm5_1_1unit_1_1_unit_t_c_s3472x.html", null ]
-    ] ]
+    ] ],
+    [ "m5::unit::tcs3472x::RGB8", "structm5_1_1unit_1_1tcs3472x_1_1_r_g_b8.html", null ]
 ];

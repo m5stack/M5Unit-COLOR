@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['start_5fperiodic_0',['start_periodic',['../structm5_1_1unit_1_1_unit_t_c_s3472x_1_1config__t.html#adb383661acbbc869fe1ced996cd93237',1,'m5::unit::UnitTCS3472x::config_t']]],
-  ['startperiodicmeasurement_1',['startPeriodicMeasurement',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#ae3d3e1fe176c51247117618c74263365',1,'m5::unit::UnitTCS3472x::startPeriodicMeasurement(const tcs3472x::Gain gc, const float atime, const float wtime)'],['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a5fb3de5f9ea0dacf122f1c9fe3d4be74',1,'m5::unit::UnitTCS3472x::startPeriodicMeasurement()']]],
-  ['stopperiodicmeasurement_2',['stopPeriodicMeasurement',['../classm5_1_1unit_1_1_unit_t_c_s3472x.html#a3b83a630a78baf406adce351818444d6',1,'m5::unit::UnitTCS3472x']]]
+  ['persistence_0',['Persistence',['../unit___t_c_s3472x__data_8hpp.html#a68ec090b1c8039c37ae29db9e3c70b4c',1,'m5::unit::tcs3472x']]],
+  ['purehue_1',['pureHue',['../color__correction_8cpp.html#a95891008f6c3c969a7b29264f569e3bd',1,'m5::unit::tcs3472x']]],
+  ['purple_2',['Purple',['../color__correction_8hpp.html#a5846b35454e675ed7d16d7d192f4307cab9ba865fec061c9706d2fd7ce49c0cc7',1,'m5::unit::tcs3472x']]]
 ];
